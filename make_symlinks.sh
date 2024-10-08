@@ -27,8 +27,9 @@ for file in $files; do
 done
 
 # Handle the special case for bashrc/zshrc
-if [ -n "$ZSH_VERSION" ]; then
-    # If Zsh, create symlink for bashrc as zshrc
-    echo "Creating symlink to $SYMLINK_BASENAME in home directory."
-    ln -sf "$DOTFILES/bashrc" ~/.$SYMLINK_BASENAME
-fi
+[ -f ~/.$SYMLINK_BASENAME ] && mv ~/.$SYMLINK_BASENAME "$DOTFILES_BKP"  # Only move if the file exists
+# If Zsh, create symlink for bashrc as zshrc
+echo "Creating symlink to $SYMLINK_BASENAME in home directory."
+ln -sf "$DOTFILES/bashrc" ~/.$SYMLINK_BASENAME
+
+source  ~/.$SYMLINK_BASENAME

@@ -28,13 +28,6 @@ if [ -d "$HOME/anaconda3" ]; then
     unset __conda_setup
 fi
 
-# Docker completion
-if command -v docker &> /dev/null && [ "$SHELL_TYPE" = "bash" ]; then
-    source <(docker completion bash)
-elif command -v docker &> /dev/null && [ "$SHELL_TYPE" = "zsh" ]; then
-    source <(docker completion zsh)
-fi
-
 # History settings
 HISTSIZE=10000
 HISTFILESIZE=20000
