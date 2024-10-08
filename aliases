@@ -1,0 +1,47 @@
+# Common Aliases
+alias ls='ls --color=auto'
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+alias grep='grep --color=auto'
+alias df='df -h'
+alias du='du -h'
+
+# Git Aliases
+alias gs='git status'
+alias ga='git add .'
+alias gc='git commit -m'
+alias gp='git push'
+alias gl='git pull'
+alias gco='git checkout'
+alias gb='git branch'
+alias gd='git diff'
+
+# Docker Aliases
+alias dps='docker ps'
+alias dpsa='docker ps -a'
+alias drm='docker rm $(docker ps -a -q)'
+alias dimg='docker images'
+alias drmi='docker rmi $(docker images -q)'
+alias dstart='docker start'
+alias dstop='docker stop'
+alias dexec='docker exec -it'
+
+# Docker Compose Aliases
+alias dcu='docker-compose up'
+alias dcd='docker-compose down'
+alias dcb='docker-compose build'
+
+# Conda Aliases
+alias ca='conda activate'
+alias cdd='conda deactivate'
+alias cdda='while [ -n "$CONDA_PREFIX" ]; do conda deactivate; done'
+
+# RC Aliases
+alias src='[ -n "$ZSH_VERSION" ] && source ~/.zshrc || source ~/.bashrc'
+alias shellrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
+alias vimrc='vim ~/.vimrc'
+alias screenrc='vim ~/.screenrc'
+
+# App Aliases
+alias code="[ -n "$ZSH_VERSION" ] && open -a Visual\ Studio\ Code.app"

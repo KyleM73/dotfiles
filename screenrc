@@ -1,0 +1,25 @@
+# ------------------------------------------------------
+# Screen Configuration File (.screenrc)
+# ------------------------------------------------------
+
+# General Settings
+defscrollback 10000       # Set a large scrollback buffer
+autodetach on             # Automatically detach screen on session disconnect
+deflogin on               # Enable login for new windows
+startup_message off       # Disable the startup welcome message
+
+# Terminal and Display Settings
+term screen-256color      # Indicate that the terminal supports 256 colors
+altscreen on              # Enable alternate screen buffer (helps with editors)
+
+# Hardstatus (Status Bar) Configuration
+hardstatus alwayslastline # Display hardstatus always at the bottom
+hardstatus string '%{= kG}[%{G}%H%? %1`%?%{g}][%= %{= kw}%-w%{+b yk} %n*%t%?(%u)%? %{-}%+w %=%{g}][%{B}%m/%d %{W}%C%A%{g}]'
+# Custom hardstatus string to show:
+# - Hostname
+# - Window list with current window highlighted
+# - Date and time on the right side
+
+# Window Title and List Customization
+windowlist string "%4n %h%=%f"  # Customize window list to show window number and name
+shelltitle "$ |bash"            # Customize shell window titles to display "|bash"
