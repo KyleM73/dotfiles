@@ -6,6 +6,12 @@ alias l='ls -CF'
 alias grep='grep --color=auto'
 alias df='df -h'
 alias du='du -h'
+alias c='clear'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+alias ......='cd ../../../../..'
 
 # Git Aliases
 alias gs='git status'
