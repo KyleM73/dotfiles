@@ -40,6 +40,8 @@ alias cdda='while [ -n "$CONDA_PREFIX" ]; do conda deactivate; done'
 # RC Aliases
 alias src='[ -n "$ZSH_VERSION" ] && source ~/.zshrc || source ~/.bashrc'
 alias shellrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
+alias bashrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
+alias zshrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias vimrc='vim ~/.vimrc'
 alias screenrc='vim ~/.screenrc'
 
