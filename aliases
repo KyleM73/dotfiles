@@ -39,6 +39,7 @@ alias dcd='docker-compose down'
 alias dcb='docker-compose build'
 
 # Conda Aliases
+alias caa='conda init bash && src'
 alias ca='conda activate'
 alias cdd='conda deactivate'
 alias cdda='while [ -n "$CONDA_PREFIX" ]; do conda deactivate; done'
