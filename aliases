@@ -53,4 +53,10 @@ alias vimrc='vim ~/.vimrc'
 alias screenrc='vim ~/.screenrc'
 
 # App Aliases
-alias code='if [[ "$OSTYPE" == "darwin"* ]]; then open -a "Visual Studio Code"; else code; fi'
+code() {
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    open -a "Visual Studio Code" "$@"
+  else
+    code "$@"
+  fi
+}
