@@ -58,3 +58,12 @@ export LESS="-R"
 
 # Faster Docker builds
 export COMPOSE_BAKE=true
+
+# App Aliases
+code() {
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    open -a "Visual Studio Code" "$@"
+  else
+    code "$@"
+  fi
+}
