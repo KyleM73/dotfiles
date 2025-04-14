@@ -34,9 +34,11 @@ alias dstop='docker stop'
 alias dexec='docker exec -it'
 
 # Docker Compose Aliases
-alias dcu='docker-compose up'
-alias dcd='docker-compose down'
-alias dcb='docker-compose build'
+alias dcu='docker compose up'
+alias dcd='docker compose down'
+alias dcb='docker compose build'
+alias dcr='docker compose run --rm'
+alias dclean="docker compose down --remove-orphans --volumes"
 
 # Conda Aliases
 alias caa='conda init bash && src'
