@@ -53,4 +53,4 @@ alias vimrc='vim ~/.vimrc'
 alias screenrc='vim ~/.screenrc'
 
 # App Aliases
-alias code="[ -n "$ZSH_VERSION" ] && open -a Visual\ Studio\ Code.app"
+alias code='if [[ "$OSTYPE" == "darwin"* ]]; then open -a "Visual Studio Code"; else code; fi'
