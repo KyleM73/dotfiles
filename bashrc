@@ -48,3 +48,6 @@ export PATH="$HOME/anaconda3/bin:$HOME/bin:/usr/local/bin:$PATH"
 
 # Fix less issue in Docker
 export LESS="-R"
+
+# Faster Docker builds
+export COMPOSE_BAKE=true
