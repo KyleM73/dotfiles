@@ -60,10 +60,11 @@ export LESS="-R"
 export COMPOSE_BAKE=true
 
 # App Aliases
-code() {
+vscode() {
   if [[ "$OSTYPE" == "darwin"* ]]; then
     open -a "Visual Studio Code" "$@"
   else
-    code "$@"
+    command code "$@"
   fi
 }
+alias code="vscode"
