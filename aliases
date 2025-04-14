@@ -51,12 +51,3 @@ alias bashrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias zshrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias vimrc='vim ~/.vimrc'
 alias screenrc='vim ~/.screenrc'
-
-# App Aliases
-code() {
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    open -a "Visual Studio Code" "$@"
-  else
-    code "$@"
-  fi
-}
