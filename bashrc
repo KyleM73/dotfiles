@@ -22,11 +22,18 @@ if [ -f "$HOME/.aliases" ]; then
 fi
 
 # Anaconda settings
-# if [ -d "$HOME/anaconda3" ]; then
-#     __conda_setup="$("$HOME/anaconda3/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
-#     eval "$__conda_setup"
-#     unset __conda_setup
-# fi
+if [ -d "$HOME/anaconda3" ]; then
+    __conda_setup="$("$HOME/anaconda3/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
+    eval "$__conda_setup"
+    unset __conda_setup
+else
+    if [ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]; then
+        . "$HOME/anaconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="$HOME/anaconda3/bin:$PATH"
+    fi
+    unset __conda_setup
+fi
 
 # History settings
 HISTSIZE=10000
