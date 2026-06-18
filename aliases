@@ -53,3 +53,6 @@ alias bashrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias zshrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias vimrc='vim ~/.vimrc'
 alias screenrc='vim ~/.screenrc'
+
+# venv
+alias venv="source .venv/bin/activate"

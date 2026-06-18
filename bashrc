@@ -68,3 +68,7 @@ vscode() {
   fi
 }
 alias code="vscode"
+
+# uv
+. "$HOME/.local/bin/env"
+eval "$(uv generate-shell-completion zsh)"

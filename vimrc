@@ -69,11 +69,11 @@ set sessionoptions-=buffers     " Do not save buffers in sessions
 set expandtab        " Convert tabs to spaces
 set softtabstop=4     " Number of spaces per tab (while editing)
 set shiftwidth=4      " Indentation width for auto-indent operations
-set textwidth=80      " Maximum width of text before wrapping
+" set textwidth=80      " Maximum width of text before wrapping
 set autoindent        " Enable automatic indentation
 set smartindent       " Enable smart indentation
 set smarttab          " Tab inserts 'shiftwidth' spaces in insert mode
-set wrap              " Enable text wrapping
+" set wrap              " Enable text wrapping
 set lbr               " Break long lines at 'breakat' characters
 set tabstop=4         " Number of spaces in a tab
 set linebreak         " Wrap lines at word boundaries rather than mid-word
