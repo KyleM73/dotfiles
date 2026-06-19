@@ -4,39 +4,41 @@ set nocompatible
 " Set encoding to UTF-8 for proper character handling
 set encoding=utf-8
 
-" Add Vundle to Vim's runtime path
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#begin()
+" Auto-install vim-plug on first launch, then install plugins
+let s:plug = expand('~/.vim/autoload/plug.vim')
+if empty(glob(s:plug))
+    silent execute '!curl -fLo ' . s:plug . ' --create-dirs '
+        \ . 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+    autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
 
-" Plugin management by Vundle
-Plugin 'gmarik/Vundle.vim'  " Vundle itself
-Plugin 'preservim/nerdtree'  " NERDTree for file navigation
-Plugin 'Xuyuanp/nerdtree-git-plugin'  " Git integration for NERDTree
-Plugin 'mhartington/oceanic-next'  " OceanicNext color scheme
-Plugin 'vim-airline/vim-airline'  " Vim airline status bar
-Plugin 'vim-airline/vim-airline-themes'  " Airline themes
-Plugin 'ryanoasis/vim-devicons'  " File type icons
-Plugin 'xolox/vim-misc'  " Helper functions for vim-session
-Plugin 'xolox/vim-session'  " Session management
-
-call vundle#end()  " Finalize Vundle setup
+" Plugins (managed by vim-plug, installed under ~/.vim/plugged)
+call plug#begin('~/.vim/plugged')
+Plug 'preservim/nerdtree'             " File navigation
+Plug 'Xuyuanp/nerdtree-git-plugin'    " Git status in NERDTree
+Plug 'mhartington/oceanic-next'       " OceanicNext color scheme
+Plug 'vim-airline/vim-airline'        " Status bar
+Plug 'vim-airline/vim-airline-themes' " Airline themes
+Plug 'ryanoasis/vim-devicons'         " File type icons
+Plug 'xolox/vim-misc'                 " Helpers for vim-session
+Plug 'xolox/vim-session'              " Session management
+call plug#end()
 
 " Enable filetype detection, plugins, and indentation
 filetype plugin indent on
-" to install plugins from cmd line: vim +PluginInstall +qall
 
 " NERDTree configuration
 let NERDTreeMinimalUI = 1  " Enable minimal UI for NERDTree
 let NERDTreeDirArrows = 1  " Show directory arrows
 let NERDTreeMouseMode = 3  " Enable mouse mode in NERDTree
 
-" Custom mappings
-" Map 'os' to open a session
-nmap os :OpenSession 
-" Map 'nt' to open NERDTree
-nmap nt :NERDTree
-" Map 'ntm' to mirror NERDTree
-nmap ntm :NERDTreeMirror  
+" Leader key (Space) for custom mappings
+let mapleader = " "
+
+" Plugin mappings
+nnoremap <leader>n :NERDTreeToggle<CR>
+nnoremap <leader>m :NERDTreeMirror<CR>
+nnoremap <leader>o :OpenSession<Space>
 
 " Airline configuration
 let g:airline_powerline_fonts = 1  " Enable powerline fonts
@@ -114,21 +116,19 @@ set wildignore=*.docx,*.jpg,*.png,*.gif,*.pdf,*.pyc,*.exe,*.flv,*.img,*.xlsx " I
 " Other performance settings
 set lazyredraw        " Do not redraw screen during macro execution for speed
 
-" Custom mappings
-" Map 'ma' to enable mouse usage
-map ma :set mouse=a
-" Map 'mi' to disable mouse usage
-map mi :set mouse=i
-" Map 'new' to open a new tab
-nmap new :tabnew 
+" Editor mappings
+nnoremap <leader>t :tabnew<CR>
+nnoremap <leader>e :set mouse=a<CR>
+nnoremap <leader>d :set mouse=<CR>
 
 " Color scheme settings
-colorscheme OceanicNext  " Set the color scheme to OceanicNext
-
-" Enable 256 colors in terminal if supported
-if (has("termguicolors"))
+" Use 24-bit true color where supported, otherwise fall back to 256 colors
+if has('termguicolors')
+    set termguicolors
+else
     set t_Co=256
 endif
+silent! colorscheme OceanicNext   " silent! avoids errors before plugins install
 
 " Disable Background Color Erase (BCE) in 256-color terminals (e.g., GNU screen)
 if &term =~ '256color'
@@ -146,8 +146,10 @@ com! WP call WordProcessorMode()  " Create a command 'WP' to activate Word Proce
 
 " Persistent undo configuration
 if has('persistent_undo')
-    " Create a backup directory if it doesn't exist
-    silent !mkdir ~/.vim/backups > /dev/null 2>&1  
-    set undodir=~/.vim/backups    " Set undo directory
+    let s:undodir = expand('~/.vim/backups')
+    if !isdirectory(s:undodir)
+        call mkdir(s:undodir, 'p')
+    endif
+    let &undodir = s:undodir
     set undofile                  " Enable persistent undo across sessions
 endif

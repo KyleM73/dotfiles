@@ -20,7 +20,8 @@ alias ......='cd ../../../../..'
 
 # Git Aliases
 alias gs='git status'
-alias ga='git add .'
+alias ga='git add'
+alias gaa='git add -A'
 alias gc='git commit -m'
 alias gp='git push'
 alias gl='git pull'
@@ -46,7 +47,6 @@ alias dcr='docker compose run --rm'
 alias dclean='docker compose down --remove-orphans --volumes'
 
 # Conda Aliases
-alias caa='conda init bash && src'
 alias ca='conda activate'
 alias cdd='conda deactivate'
 alias cdda='while [ -n "$CONDA_PREFIX" ]; do conda deactivate; done'
@@ -58,6 +58,7 @@ alias bashrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias zshrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias vimrc='vim ~/.vimrc'
 alias screenrc='vim ~/.screenrc'
+alias gitconfig='vim ~/.gitconfig'
 
 # venv
 alias venv="source .venv/bin/activate"

@@ -47,24 +47,39 @@ if [ -z "$NO_CONDA" ]; then
     fi
 fi
 
-# History settings
+# History settings (persisted and de-duplicated in both shells)
 HISTSIZE=10000
-HISTFILESIZE=20000
-
-# Bash/Zsh-specific settings
 if [ "$SHELL_TYPE" = "bash" ]; then
-    # Enable Bash completion
-    if [ -f /etc/bash_completion ]; then
-        . /etc/bash_completion
-    fi
+    HISTFILESIZE=20000
+    HISTCONTROL=ignoreboth      # ignore duplicate and space-prefixed commands
+    shopt -s histappend         # append to history instead of overwriting
 elif [ "$SHELL_TYPE" = "zsh" ]; then
-    autoload -U compinit
-    compinit
+    HISTFILE="$HOME/.zsh_history"
+    SAVEHIST=20000
+    setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE
 fi
 
-# Add custom paths (e.g., Anaconda, Docker)
-[ -d "$HOME/anaconda3/bin" ] && export PATH="$HOME/anaconda3/bin:$PATH"
-export PATH="$HOME/bin:/usr/local/bin:$PATH"
+# Completion
+if [ "$SHELL_TYPE" = "bash" ]; then
+    [ -f /etc/bash_completion ] && . /etc/bash_completion
+elif [ "$SHELL_TYPE" = "zsh" ]; then
+    autoload -U compinit && compinit -C   # -C skips the slow security check
+fi
+
+# Prepend a dir to PATH only if it exists and isn't already there
+path_prepend() {
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) [ -d "$1" ] && PATH="$1:$PATH" ;;
+    esac
+}
+path_prepend "/usr/local/bin"
+path_prepend "$HOME/bin"
+export PATH
+
+# Default editor
+export EDITOR=vim
+export VISUAL=vim
 
 # Fix less issue in Docker
 export LESS="-R"
