@@ -1,0 +1,4 @@
+# Machine-local overrides live in $HOME (e.g. ~/.bashrc.local), never here.
+# This is a safety net in case a *.local file is created inside the repo.
+*.local
+dotfiles.bkp/

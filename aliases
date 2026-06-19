@@ -1,5 +1,10 @@
 # Common Aliases
-alias ls='ls --color=auto'
+# GNU ls uses --color=auto; BSD ls (stock macOS) uses -G
+if ls --color=auto >/dev/null 2>&1; then
+    alias ls='ls --color=auto'
+else
+    alias ls='ls -G'
+fi
 alias ll='ls -lah'
 alias la='ls -A'
 alias l='ls -CF'
