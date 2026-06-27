@@ -105,15 +105,14 @@ return {
     version = "*",
     event = "InsertEnter",
     opts = {
-      -- VS Code-style accept: Tab AND Enter accept the suggestion; arrows or
-      -- C-n/C-p move the selection; C-space toggles the menu; C-e hides it.
-      -- (blink's built-in "default" preset only accepts with C-y, which is why
-      -- Tab/Enter seemed to do nothing.)
+      -- Tab accepts the suggestion. Enter is intentionally left unbound so it
+      -- stays a normal newline (won't accept). Arrows or C-n/C-p move the
+      -- selection, C-space toggles the menu, C-e hides it. (blink's "default"
+      -- preset only accepts with C-y, which is why Tab seemed to do nothing.)
       keymap = {
         preset = "none",
         ["<Tab>"]     = { "select_and_accept", "snippet_forward", "fallback" },
         ["<S-Tab>"]   = { "snippet_backward", "fallback" },
-        ["<CR>"]      = { "select_and_accept", "fallback" },
         ["<Down>"]    = { "select_next", "fallback" },
         ["<Up>"]      = { "select_prev", "fallback" },
         ["<C-n>"]     = { "select_next", "fallback" },
