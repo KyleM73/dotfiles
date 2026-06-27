@@ -51,9 +51,31 @@ if [ "$OS" = "Darwin" ] && [ "$PM" != "brew" ]; then
     echo "  ! No Homebrew on macOS. Install it first: https://brew.sh"
 fi
 
-[ "$PM" = "apt-get" ] && run $SUDO apt-get update -qq
+# Can we actually use the system package manager? brew never needs sudo; the
+# Linux managers do. Prime sudo ONCE (so you're prompted a single time, not per
+# package) and, if it's unavailable non-interactively, skip those installs with
+# one clear message instead of erroring on every package. Tools that don't need
+# root (nvim/zellij/yazi releases, uv) are installed regardless.
+PM_USABLE=1
+if [ -n "$SUDO" ] && [ "$DRY_RUN" != "1" ]; then
+    if sudo -n true 2>/dev/null; then
+        :   # passwordless sudo already available
+    elif [ -t 0 ]; then
+        echo "  (some packages need sudo — you may be prompted once)"
+        sudo -v 2>/dev/null || PM_USABLE=0
+    else
+        PM_USABLE=0
+    fi
+fi
+if [ "$PM_USABLE" != "1" ]; then
+    echo "  ! sudo unavailable non-interactively — skipping $PM packages"
+    echo "    (re-run ./install_deps.sh in a terminal to get: fzf, ripgrep, preview tools)"
+fi
+
+[ "$PM" = "apt-get" ] && [ "$PM_USABLE" = "1" ] && run $SUDO apt-get update -qq
 
 pm_install() {  # pm_install <pkg...>
+    [ "${PM_USABLE:-1}" = "1" ] || return 1
     case "$PM" in
         brew)    run brew install "$@" ;;
         apt-get) run $SUDO apt-get install -y "$@" ;;
