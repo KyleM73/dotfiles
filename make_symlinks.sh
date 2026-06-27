@@ -37,7 +37,7 @@ done
 
 # XDG config directories (nvim, yazi, zellij) -> ~/.config/<name>
 XDG_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
-config_dirs="nvim yazi zellij"  # dirs under repo config/ to link into ~/.config
+config_dirs="nvim yazi zellij ghostty"  # dirs under repo config/ to link into ~/.config
 mkdir -p "$XDG_CONFIG"
 echo "Linking config dirs into $XDG_CONFIG"
 for dir in $config_dirs; do

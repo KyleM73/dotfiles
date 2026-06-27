@@ -2,9 +2,9 @@
 -- plus a few modern defaults. Lightly opinionated.
 local opt = vim.opt
 
--- Line numbers: absolute on the cursor line, relative elsewhere (fast j/k jumps).
+-- Line numbers: absolute on every line (no relative numbering).
 opt.number = true
-opt.relativenumber = true
+opt.relativenumber = false
 
 -- Indentation: 4-space, spaces-not-tabs (matches your vimrc and Python work).
 opt.expandtab = true

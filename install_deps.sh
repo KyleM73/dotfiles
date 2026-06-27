@@ -168,6 +168,29 @@ install_yazi_release() {
     command -v yazi >/dev/null 2>&1
 }
 
+font_present() {  # is Hack Nerd Font already installed?
+    if command -v fc-list >/dev/null 2>&1; then
+        fc-list 2>/dev/null | grep -qi "Hack Nerd Font"
+    else
+        ls "$HOME/Library/Fonts" /Library/Fonts 2>/dev/null | grep -qi "HackNerdFont"
+    fi
+}
+
+install_nerdfont_release() {  # download Hack Nerd Font into ~/.local/share/fonts (no root)
+    local url dest tmp
+    url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip"
+    dest="$HOME/.local/share/fonts/HackNerdFont"
+    echo "  → Hack Nerd Font -> $dest"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] dl $url; unzip into $dest; fc-cache -f"; return 0; fi
+    have_dl || { echo "  ! need curl or wget"; return 1; }
+    command -v unzip >/dev/null 2>&1 || pm_install unzip
+    mkdir -p "$dest"; tmp="$(mktemp -d)"
+    dl "$url" "$tmp/Hack.zip" || { rm -rf "$tmp"; return 1; }
+    unzip -qo "$tmp/Hack.zip" -d "$dest" || { rm -rf "$tmp"; return 1; }
+    command -v fc-cache >/dev/null 2>&1 && fc-cache -f "$HOME/.local/share/fonts" >/dev/null 2>&1
+    rm -rf "$tmp"
+}
+
 # Install a tool that may not be packaged: brew -> prebuilt release -> note.
 smart_install() {  # smart_install <binary> <tool> <release_fn>
     local bin="$1" tool="$2" relfn="$3"
@@ -288,8 +311,24 @@ if [ "$PM" = "apt-get" ] && [ "$DRY_RUN" != "1" ]; then
     command -v batcat >/dev/null 2>&1 && [ ! -e "$LOCAL_BIN/bat" ] && ln -sf "$(command -v batcat)" "$LOCAL_BIN/bat"
 fi
 
+# ---- Nerd Font (icons in neovim / yazi) ------------------------------------
+# Only matters where you actually RUN a terminal (your Mac, or the Linux box if
+# used locally) — over SSH the glyphs are drawn by the Mac's Ghostty.
+echo
+echo "Nerd Font (Hack — neovim/yazi icons):"
+if font_present; then
+    echo "  ✓ Hack Nerd Font present"
+elif [ "$PM" = "brew" ]; then
+    echo "  → Hack Nerd Font (brew cask)"
+    pm_install --cask font-hack-nerd-font
+elif have_dl; then
+    install_nerdfont_release || echo "  ! Hack Nerd Font: get it from https://github.com/ryanoasis/nerd-fonts"
+else
+    echo "  ! install a Nerd Font (https://github.com/ryanoasis/nerd-fonts) for icons"
+fi
+
 echo
 echo "Done. Reminders:"
 echo "  * ~/.local/bin must be on your PATH (the shell config adds it)."
-echo "  * Set your terminal font to a Nerd Font for icons (Ghostty: font-family = \"...\")."
+echo "  * Ghostty is configured to use Hack Nerd Font (config/ghostty/config)."
 echo "  * First 'nvim' launch auto-installs plugins."

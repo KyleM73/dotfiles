@@ -1,0 +1,22 @@
+# ~/.config/ghostty/config
+# Ghostty terminal configuration. Ghostty reads this path on Linux and on macOS
+# (macOS also checks its Application Support path). Format is simple
+# `key = value` lines. Handy commands:
+#   ghostty +show-config     show the resolved configuration
+#   ghostty +list-fonts      browse available fonts (grep -i nerd)
+#   ghostty +list-themes     browse built-in themes
+
+# Primary font. Hack Nerd Font includes the icon glyphs that neovim (neo-tree,
+# lualine) and yazi use. install_deps.sh installs it for you.
+# NOTE: Ghostty also falls back to bundled Nerd Font symbols automatically, so
+# icons render even if this font is missing — this just makes Hack the main font.
+font-family = "Hack Nerd Font"
+# font-size = 13
+
+# Common extras — uncomment and tweak to taste:
+# theme = "GruvboxDark"          # `ghostty +list-themes` to browse built-ins
+# background-opacity = 0.95
+# macos-option-as-alt = true     # make the Option key send Alt (macOS)
+# confirm-close-surface = false
+# window-padding-x = 4
+# window-padding-y = 4

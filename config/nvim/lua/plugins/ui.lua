@@ -1,16 +1,36 @@
--- UI polish: colorscheme + statusline. DISABLED by default — flip
--- `enabled = false` -> `true` on a spec and restart nvim to turn it on.
+-- UI polish: colorscheme + statusline. ENABLED — set `enabled = false` on a
+-- spec to turn it back off.
 -- (Treesitter, which is also "UI", lives in its own file: treesitter.lua.)
 return {
   ----------------------------------------------------------------------------
-  -- Colorscheme. tokyonight has excellent true-color/ghostty support.
-  -- Alternatives: "catppuccin/nvim", "ellisonleao/gruvbox.nvim", or
-  -- "mhartington/oceanic-next" to match your old vim colorscheme.
+  -- Colorscheme: vscode.nvim — built to mirror VS Code's default dark theme
+  -- (Dark+/Dark Modern share the same core palette), so it should feel just
+  -- like your editor: same blues, oranges, teals. Rich treesitter + LSP
+  -- semantic-token highlighting.
+  -- NOTE: keep exactly ONE colorscheme spec enabled. tokyonight is kept below,
+  -- disabled, as an easy alternative.
   ----------------------------------------------------------------------------
   {
+    "Mofiqul/vscode.nvim",
+    priority = 1000,             -- load the colorscheme before other UI plugins
+    opts = {
+      italic_comments = true,
+      underline_links = true,
+      terminal_colors = true,    -- recolor :terminal windows to match
+      -- transparent = true,     -- uncomment to use your terminal's background
+    },
+    config = function(_, opts)
+      vim.o.background = "dark"
+      require("vscode").setup(opts)
+      vim.cmd.colorscheme("vscode")
+    end,
+  },
+
+  -- Alternative: tokyonight. To use it, set enabled = true and disable vscode.
+  {
     "folke/tokyonight.nvim",
-    enabled = false, -- <-- flip to true to enable
-    priority = 1000, -- load the colorscheme before other UI plugins
+    enabled = false, -- set to true to enable (and disable the others)
+    priority = 1000,
     config = function()
       vim.cmd.colorscheme("tokyonight-night")
     end,
@@ -22,7 +42,7 @@ return {
   ----------------------------------------------------------------------------
   {
     "nvim-lualine/lualine.nvim",
-    enabled = false, -- <-- flip to true to enable
+    enabled = true, -- set to false to disable
     dependencies = { "nvim-tree/nvim-web-devicons" },
     opts = {
       options = {

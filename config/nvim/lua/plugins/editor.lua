@@ -1,5 +1,5 @@
--- Editing quality-of-life. DISABLED by default — flip `enabled` to true and
--- restart nvim to turn these on. Both are lightweight and highly recommended.
+-- Editing quality-of-life. ENABLED — set `enabled = false` on a spec to turn
+-- it back off. Both are lightweight and highly recommended.
 return {
   ----------------------------------------------------------------------------
   -- which-key — press <leader> (or any prefix) and a popup lists every keybind
@@ -8,7 +8,7 @@ return {
   ----------------------------------------------------------------------------
   {
     "folke/which-key.nvim",
-    enabled = false, -- <-- flip to true to enable
+    enabled = true, -- set to false to disable
     event = "VeryLazy",
     opts = {},
   },
@@ -18,7 +18,7 @@ return {
   ----------------------------------------------------------------------------
   {
     "windwp/nvim-autopairs",
-    enabled = false, -- <-- flip to true to enable
+    enabled = true, -- set to false to disable
     event = "InsertEnter",
     opts = {},
   },

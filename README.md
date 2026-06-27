@@ -25,9 +25,10 @@ That single command is the whole setup. `make_symlinks.sh`:
   | `vimrc`         | `~/.vimrc`                 |
   | `screenrc`      | `~/.screenrc`              |
   | `gitconfig`     | `~/.gitconfig`             |
-  | `config/nvim`   | `~/.config/nvim`           |
-  | `config/yazi`   | `~/.config/yazi`           |
-  | `config/zellij` | `~/.config/zellij`         |
+  | `config/nvim`    | `~/.config/nvim`          |
+  | `config/yazi`    | `~/.config/yazi`          |
+  | `config/zellij`  | `~/.config/zellij`        |
+  | `config/ghostty` | `~/.config/ghostty`       |
 
 - Prompts for your git name/email (pre-filled from your existing `~/.gitconfig`)
   and writes them to `~/.gitconfig.local` — so identity is set automatically and
@@ -165,10 +166,14 @@ package manager and does the right thing per platform:
 `~/.local/bin` is added to your `PATH` by the shell config, so a freshly
 installed Neovim wins over an older system one.
 
-Two things the script can't do for you:
+It also installs **Hack Nerd Font** (so neovim/yazi icons render) and the
+Ghostty config sets it as the font. Note: over SSH the font only matters on the
+machine running Ghostty (your Mac), not the remote box — there the Mac's Ghostty
+draws the glyphs. Ghostty also falls back to bundled Nerd Font symbols
+automatically, so icons work even before the font is installed.
 
-- Set your terminal font to a **Nerd Font** (e.g. in Ghostty:
-  `font-family = "<your Nerd Font>"`) so file-type icons render.
+One thing the script can't do for you:
+
 - On macOS without a C compiler, run `xcode-select --install` (for treesitter).
 
 ## Neovim
@@ -243,4 +248,13 @@ Terminal file manager, configured in `config/yazi/yazi.toml`. Launch it with
 **`y`** (not plain `yazi`) — the shell wrapper makes your shell `cd` to wherever
 you ended up when you quit. Files open in `$EDITOR` (nvim). Toggle hidden files
 with `.`. Richer previews depend on the optional tools listed under
-[Dependencies](#dependencies-one-time-per-machine).
+[Installing the tools](#installing-the-tools).
+
+## Ghostty
+
+Terminal config in `config/ghostty/config`. Sets the font to **Hack Nerd Font**
+(installed by `install_deps.sh`) so neovim/yazi icons render; Ghostty also falls
+back to bundled Nerd Font symbols automatically. Check what fonts Ghostty sees
+with `ghostty +list-fonts | grep -i nerd`. The file has commented extras (theme,
+opacity, padding) to tweak. Read on both macOS and Linux from
+`~/.config/ghostty/config`.
