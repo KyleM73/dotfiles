@@ -214,14 +214,18 @@ install_lazygit_release() {  # download lazygit release binary into ~/.local/bin
 ts_cli_arch() { case "$ARCH" in x86_64|amd64) echo x64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }
 
 install_tree_sitter_cli() {  # download the tree-sitter CLI into ~/.local/bin (no root)
-    local a os tmp
+    local a os tmp ver
+    # Pin to 0.25.x: tree-sitter 0.26+ release binaries need glibc 2.39 (Ubuntu
+    # 24.04+), too new for older distros like Ubuntu 22.04 (glibc 2.35). 0.25.10
+    # runs on glibc 2.35+ and on macOS, and builds parsers fine for nvim-treesitter.
+    ver="0.25.10"
     a="$(ts_cli_arch)"; [ -z "$a" ] && { echo "  ! tree-sitter: unsupported arch $ARCH"; return 1; }
     if [ "$OS" = "Darwin" ]; then os="macos"; else os="linux"; fi
-    echo "  → tree-sitter prebuilt release ($os-$a) -> $LOCAL_BIN"
-    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] dl tree-sitter-${os}-${a}.gz; gunzip -> $LOCAL_BIN/tree-sitter"; return 0; fi
+    echo "  → tree-sitter prebuilt release v$ver ($os-$a) -> $LOCAL_BIN"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] dl tree-sitter-${os}-${a}.gz (v$ver); gunzip -> $LOCAL_BIN/tree-sitter"; return 0; fi
     have_dl || { echo "  ! tree-sitter: need curl or wget"; return 1; }
     tmp="$(mktemp -d)"
-    dl "https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-${os}-${a}.gz" "$tmp/ts.gz" || { rm -rf "$tmp"; return 1; }
+    dl "https://github.com/tree-sitter/tree-sitter/releases/download/v${ver}/tree-sitter-${os}-${a}.gz" "$tmp/ts.gz" || { rm -rf "$tmp"; return 1; }
     gunzip -c "$tmp/ts.gz" > "$tmp/tree-sitter" || { rm -rf "$tmp"; return 1; }
     install -m 0755 "$tmp/tree-sitter" "$LOCAL_BIN/tree-sitter" || { rm -rf "$tmp"; return 1; }
     rm -rf "$tmp"

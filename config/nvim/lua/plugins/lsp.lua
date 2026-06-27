@@ -105,7 +105,22 @@ return {
     version = "*",
     event = "InsertEnter",
     opts = {
-      keymap = { preset = "default" },
+      -- VS Code-style accept: Tab AND Enter accept the suggestion; arrows or
+      -- C-n/C-p move the selection; C-space toggles the menu; C-e hides it.
+      -- (blink's built-in "default" preset only accepts with C-y, which is why
+      -- Tab/Enter seemed to do nothing.)
+      keymap = {
+        preset = "none",
+        ["<Tab>"]     = { "select_and_accept", "snippet_forward", "fallback" },
+        ["<S-Tab>"]   = { "snippet_backward", "fallback" },
+        ["<CR>"]      = { "select_and_accept", "fallback" },
+        ["<Down>"]    = { "select_next", "fallback" },
+        ["<Up>"]      = { "select_prev", "fallback" },
+        ["<C-n>"]     = { "select_next", "fallback" },
+        ["<C-p>"]     = { "select_prev", "fallback" },
+        ["<C-space>"] = { "show", "hide" },
+        ["<C-e>"]     = { "hide", "fallback" },
+      },
       appearance = { nerd_font_variant = "mono" },
       sources = { default = { "lsp", "path", "snippets", "buffer" } },
       completion = { documentation = { auto_show = true, auto_show_delay_ms = 200 } },
