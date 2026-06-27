@@ -2,3 +2,6 @@
 # This is a safety net in case a *.local file is created inside the repo.
 *.local
 dotfiles.bkp/
+
+# macOS Finder metadata
+.DS_Store

@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+# install_deps.sh — install the CLI tools the nvim / zellij / yazi setup uses.
+#
+#   * Idempotent  : skips anything already on your PATH; safe to re-run.
+#   * Best-effort : warns and keeps going if one tool can't be installed.
+#   * Portable    : Homebrew on macOS; on Linux the native package manager
+#                   (apt/dnf/pacman/zypper/apk) for well-packaged tools.
+#
+# Homebrew is NOT required on Linux — only used if it happens to be present.
+# Three tools are special on Linux because the distro packages are missing or
+# too old, so they're installed from OFFICIAL PREBUILT RELEASES into ~/.local
+# (no root, no compiler needed):
+#     neovim  — apt ships < 0.11; the Python LSP needs the native vim.lsp API
+#     zellij  — not packaged on Debian/Ubuntu
+#     yazi    — not packaged on Debian/Ubuntu
+# Python tools (ruff, ty) always go through uv (no brew, no root).
+#
+# Usage:
+#   ./install_deps.sh            install everything that's missing
+#   DRY_RUN=1 ./install_deps.sh  print what WOULD happen, change nothing
+#   (run automatically by make_symlinks.sh unless SKIP_DEPS=1)
+
+set -u
+
+DRY_RUN="${DRY_RUN:-0}"
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+LOCAL_BIN="$HOME/.local/bin"
+mkdir -p "$LOCAL_BIN"
+# Ensure ~/.local/bin wins on PATH for this run (where release binaries land).
+case ":$PATH:" in *":$LOCAL_BIN:"*) ;; *) PATH="$LOCAL_BIN:$PATH"; export PATH ;; esac
+
+run() {  # execute a command, or just echo it in dry-run mode
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] $*"; return 0; fi
+    "$@"
+}
+
+# ---- detect package manager + privilege escalation -------------------------
+PM=""
+for c in brew apt-get dnf pacman zypper apk; do
+    command -v "$c" >/dev/null 2>&1 && { PM="$c"; break; }
+done
+PM="${PM_OVERRIDE:-$PM}"   # PM_OVERRIDE lets you test another manager's path
+SUDO=""
+if [ "$PM" != "brew" ] && [ -n "$PM" ] && [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+    SUDO="sudo"
+fi
+
+echo "OS: $OS ($ARCH)   package manager: ${PM:-none}"
+if [ "$OS" = "Darwin" ] && [ "$PM" != "brew" ]; then
+    echo "  ! No Homebrew on macOS. Install it first: https://brew.sh"
+fi
+
+[ "$PM" = "apt-get" ] && run $SUDO apt-get update -qq
+
+pm_install() {  # pm_install <pkg...>
+    case "$PM" in
+        brew)    run brew install "$@" ;;
+        apt-get) run $SUDO apt-get install -y "$@" ;;
+        dnf)     run $SUDO dnf install -y "$@" ;;
+        pacman)  run $SUDO pacman -S --needed --noconfirm "$@" ;;
+        zypper)  run $SUDO zypper install -y "$@" ;;
+        apk)     run $SUDO apk add "$@" ;;
+        *)       return 1 ;;
+    esac
+}
+
+pkg_for() {  # package name for the detected manager (defaults to the tool name)
+    local t="$1"
+    case "$PM" in
+        apt-get) case "$t" in
+            fd) echo fd-find ;; poppler) echo poppler-utils ;;
+            7zip) echo p7zip-full ;; *) echo "$t" ;; esac ;;
+        dnf) case "$t" in
+            fd) echo fd-find ;; poppler) echo poppler-utils ;;
+            7zip) echo p7zip ;; imagemagick) echo ImageMagick ;; *) echo "$t" ;; esac ;;
+        brew) case "$t" in 7zip) echo sevenzip ;; *) echo "$t" ;; esac ;;
+        pacman) case "$t" in 7zip) echo p7zip ;; *) echo "$t" ;; esac ;;
+        zypper) case "$t" in
+            7zip) echo p7zip ;; imagemagick) echo ImageMagick ;; *) echo "$t" ;; esac ;;
+        apk) case "$t" in
+            7zip) echo p7zip ;; poppler) echo poppler-utils ;; *) echo "$t" ;; esac ;;
+        *) echo "" ;;
+    esac
+}
+
+# ---- download helper -------------------------------------------------------
+have_dl() { command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1; }
+dl() {  # dl <url> <outfile>
+    if command -v curl >/dev/null 2>&1; then run curl -fSL "$1" -o "$2"
+    else run wget -qO "$2" "$1"; fi
+}
+
+# Map uname -m to the arch token each project uses in its release asset names.
+nvim_arch()  { case "$ARCH" in x86_64|amd64) echo x86_64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }
+rust_arch()  { case "$ARCH" in x86_64|amd64) echo x86_64 ;; aarch64|arm64) echo aarch64 ;; *) echo "" ;; esac; }
+
+install_nvim_release() {
+    local a os url tmp dir
+    a="$(nvim_arch)"; [ -z "$a" ] && { echo "  ! neovim: unsupported arch $ARCH"; return 1; }
+    if [ "$OS" = "Darwin" ]; then os=macos; else os=linux; fi
+    url="https://github.com/neovim/neovim/releases/latest/download/nvim-${os}-${a}.tar.gz"
+    echo "  → neovim     prebuilt release ($os-$a) -> ~/.local"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] dl $url; tar -C ~/.local; ln -s nvim -> $LOCAL_BIN"; return 0; fi
+    have_dl || { echo "  ! neovim: need curl or wget"; return 1; }
+    tmp="$(mktemp -d)"
+    dl "$url" "$tmp/nvim.tar.gz" || { rm -rf "$tmp"; return 1; }
+    mkdir -p "$HOME/.local"
+    tar -xzf "$tmp/nvim.tar.gz" -C "$HOME/.local" || { rm -rf "$tmp"; return 1; }
+    dir="$HOME/.local/nvim-${os}-${a}"
+    ln -sf "$dir/bin/nvim" "$LOCAL_BIN/nvim"
+    rm -rf "$tmp"
+}
+
+install_zellij_release() {
+    local a triple url tmp
+    a="$(rust_arch)"; [ -z "$a" ] && { echo "  ! zellij: unsupported arch $ARCH"; return 1; }
+    if [ "$OS" = "Darwin" ]; then triple="${a}-apple-darwin"; else triple="${a}-unknown-linux-musl"; fi
+    url="https://github.com/zellij-org/zellij/releases/latest/download/zellij-${triple}.tar.gz"
+    echo "  → zellij     prebuilt release ($triple) -> $LOCAL_BIN"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] dl $url; tar; cp zellij -> $LOCAL_BIN"; return 0; fi
+    have_dl || { echo "  ! zellij: need curl or wget"; return 1; }
+    tmp="$(mktemp -d)"
+    dl "$url" "$tmp/z.tar.gz" || { rm -rf "$tmp"; return 1; }
+    tar -xzf "$tmp/z.tar.gz" -C "$tmp" || { rm -rf "$tmp"; return 1; }
+    install -m 0755 "$tmp/zellij" "$LOCAL_BIN/zellij" || { rm -rf "$tmp"; return 1; }
+    rm -rf "$tmp"
+}
+
+install_yazi_release() {
+    local a triple url tmp sub
+    a="$(rust_arch)"; [ -z "$a" ] && { echo "  ! yazi: unsupported arch $ARCH"; return 1; }
+    if [ "$OS" = "Darwin" ]; then triple="${a}-apple-darwin"; else triple="${a}-unknown-linux-musl"; fi
+    url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-${triple}.zip"
+    echo "  → yazi       prebuilt release ($triple) -> $LOCAL_BIN"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] dl $url; unzip; cp yazi,ya -> $LOCAL_BIN"; return 0; fi
+    have_dl || { echo "  ! yazi: need curl or wget"; return 1; }
+    command -v unzip >/dev/null 2>&1 || pm_install unzip
+    tmp="$(mktemp -d)"
+    dl "$url" "$tmp/yazi.zip" || { rm -rf "$tmp"; return 1; }
+    unzip -q "$tmp/yazi.zip" -d "$tmp" || { rm -rf "$tmp"; return 1; }
+    sub="$tmp/yazi-${triple}"
+    install -m 0755 "$sub/yazi" "$LOCAL_BIN/yazi" 2>/dev/null
+    install -m 0755 "$sub/ya"   "$LOCAL_BIN/ya"   2>/dev/null
+    rm -rf "$tmp"
+    command -v yazi >/dev/null 2>&1
+}
+
+# Install a tool that may not be packaged: brew -> prebuilt release -> note.
+smart_install() {  # smart_install <binary> <tool> <release_fn>
+    local bin="$1" tool="$2" relfn="$3"
+    if command -v "$bin" >/dev/null 2>&1; then
+        printf '  ✓ %-10s present\n' "$tool"; return 0
+    fi
+    if [ "$PM" = "brew" ]; then
+        printf '  → %-10s brew install\n' "$tool"
+        pm_install "$(pkg_for "$tool")"
+        { [ "$DRY_RUN" = "1" ] || command -v "$bin" >/dev/null 2>&1; } && return 0
+    fi
+    if have_dl; then
+        "$relfn" && { [ "$DRY_RUN" = "1" ] || command -v "$bin" >/dev/null 2>&1; } && return 0
+    fi
+    printf '  ! %-10s install manually\n' "$tool"; return 1
+}
+
+# Install a well-packaged tool straight from the system manager.
+ensure_pkg() {  # ensure_pkg <binary> <tool> [hint]
+    local bin="$1" tool="$2" hint="${3:-}"
+    if command -v "$bin" >/dev/null 2>&1; then
+        printf '  ✓ %-10s present\n' "$tool"; return 0
+    fi
+    local pkg; pkg="$(pkg_for "$tool")"
+    if [ -n "$pkg" ]; then
+        printf '  → %-10s %s install (%s)\n' "$tool" "$PM" "$pkg"
+        pm_install $pkg
+        { [ "$DRY_RUN" = "1" ] || command -v "$bin" >/dev/null 2>&1; } && return 0
+    fi
+    printf '  ! %-10s not installed%s\n' "$tool" "${hint:+ — $hint}"; return 1
+}
+
+# ---- neovim (version-aware: need >= 0.11) ----------------------------------
+echo
+echo "Editor:"
+nvim_recent=0
+if command -v nvim >/dev/null 2>&1; then
+    nv="$(nvim --version 2>/dev/null | sed -n '1s/.*v\([0-9]*\.[0-9]*\).*/\1/p')"
+    case "$nv" in 0.[0-9]|0.10) nvim_recent=0 ;; *) nvim_recent=1 ;; esac
+fi
+if [ "$nvim_recent" = "1" ]; then
+    printf '  ✓ %-10s present (%s)\n' neovim "$nv"
+elif [ "$PM" = "brew" ]; then
+    printf '  → %-10s brew install\n' neovim; pm_install neovim
+else
+    [ -n "${nv:-}" ] && echo "  (neovim ${nv} is too old; installing a current release alongside it)"
+    install_nvim_release || echo "  ! neovim: grab a release from https://github.com/neovim/neovim/releases"
+fi
+
+# ---- multiplexer + file manager (release binaries on Linux) ----------------
+echo
+echo "Multiplexer + file manager:"
+smart_install zellij zellij install_zellij_release
+smart_install yazi   yazi   install_yazi_release
+
+# ---- finder + search (well packaged everywhere) ----------------------------
+echo
+echo "Finder + search:"
+ensure_pkg fzf fzf     "https://github.com/junegunn/fzf"
+ensure_pkg rg  ripgrep "https://github.com/BurntSushi/ripgrep"
+
+# ---- C compiler (treesitter compiles parsers on install) -------------------
+echo
+echo "Build prerequisite (treesitter):"
+if command -v cc >/dev/null 2>&1 || command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1; then
+    echo "  ✓ compiler   present"
+else
+    case "$PM" in
+        brew)    echo "  ! run: xcode-select --install" ;;
+        apt-get) pm_install build-essential ;;
+        dnf)     pm_install gcc make ;;
+        pacman)  pm_install base-devel ;;
+        zypper)  pm_install gcc make ;;
+        apk)     pm_install build-base ;;
+        *)       echo "  ! install a C compiler (gcc/clang) + make" ;;
+    esac
+fi
+
+# ---- Python tooling via uv (no brew / no root needed) ----------------------
+echo
+echo "Python tooling (ruff + ty, via uv):"
+if ! command -v uv >/dev/null 2>&1; then
+    if [ "$PM" = "brew" ]; then
+        pm_install uv
+    else
+        echo "  → uv         astral.sh installer"
+        if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] curl -LsSf https://astral.sh/uv/install.sh | sh"
+        else curl -LsSf https://astral.sh/uv/install.sh | sh; fi
+    fi
+    [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+fi
+if command -v uv >/dev/null 2>&1 || [ "$DRY_RUN" = "1" ]; then
+    for tool in ruff ty; do
+        printf '  → uv tool install %s\n' "$tool"
+        run uv tool install "$tool"
+    done
+else
+    echo "  ! uv unavailable; later run: uv tool install ruff ty"
+fi
+
+# ---- optional: richer yazi previews + navigation (best-effort) -------------
+echo
+echo "Optional preview/navigation tools (best-effort):"
+for t in bat fd zoxide jq ffmpegthumbnailer poppler imagemagick 7zip; do
+    pkg="$(pkg_for "$t")"
+    if [ -n "$pkg" ]; then
+        printf '  → %s (%s)\n' "$t" "$pkg"
+        pm_install $pkg || true
+    else
+        printf '  - %s (no package manager; skip)\n' "$t"
+    fi
+done
+
+# Debian/Ubuntu install fd-find/bat under different binary names; expose the
+# expected `fd` / `bat` names in ~/.local/bin so yazi's previews find them.
+if [ "$PM" = "apt-get" ] && [ "$DRY_RUN" != "1" ]; then
+    command -v fdfind >/dev/null 2>&1 && [ ! -e "$LOCAL_BIN/fd" ]  && ln -sf "$(command -v fdfind)" "$LOCAL_BIN/fd"
+    command -v batcat >/dev/null 2>&1 && [ ! -e "$LOCAL_BIN/bat" ] && ln -sf "$(command -v batcat)" "$LOCAL_BIN/bat"
+fi
+
+echo
+echo "Done. Reminders:"
+echo "  * ~/.local/bin must be on your PATH (the shell config adds it)."
+echo "  * Set your terminal font to a Nerd Font for icons (Ghostty: font-family = \"...\")."
+echo "  * First 'nvim' launch auto-installs plugins."

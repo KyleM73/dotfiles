@@ -1,0 +1,40 @@
+# ~/.config/yazi/yazi.toml
+# Yazi — a fast, standalone terminal file manager ("Finder/Explorer in the
+# terminal"). It runs in its OWN pane/window, SEPARATE from neovim:
+#   * neo-tree (inside nvim) = the editor's Explorer sidebar, for opening files
+#     into buffers while you edit.
+#   * yazi (its own pane)    = filesystem-heavy work — previews (images/PDF/
+#     video), bulk rename/move/delete, browsing the wider tree — then cd your
+#     shell there (the `y` wrapper in the shell config) or open a file in nvim.
+# Yazi is excellent out of the box; this only sets a few preferences.
+# Full reference: https://yazi-rs.github.io/docs/configuration/yazi
+#
+# NOTE: recent Yazi (>= 25.x) uses the [mgr] table below. OLDER Yazi used
+# [manager]. If yazi errors on launch about an unknown `mgr` key, rename
+# [mgr] -> [manager] (the keys underneath are the same).
+
+[mgr]
+show_hidden    = false      # toggle in-app with the  .  key
+sort_by        = "natural"  # human-friendly order: file2 before file10
+sort_dir_first = true       # directories listed before files
+linemode       = "size"     # show file sizes in the right column
+
+[preview]
+tab_size      = 4
+max_width     = 1000
+max_height    = 1000
+
+# Opening files: Yazi's default opener routes text files to $EDITOR, which the
+# shell config sets to nvim. So Enter / `o` on a text file opens it in neovim —
+# no [opener]/[open] rules needed here.
+#
+# Richer previews are optional and depend on external tools being installed:
+#   fd, ripgrep (rg), fzf, zoxide   - navigation / jumping
+#   bat                              - syntax-highlighted text preview
+#   ffmpegthumbnailer                - video thumbnails
+#   poppler (pdftoppm)               - PDF preview
+#   imagemagick                      - misc image formats
+#   7zip / p7zip                     - archive preview
+#   jq                               - JSON preview
+# macOS: brew install fd ripgrep fzf zoxide bat ffmpegthumbnailer poppler imagemagick sevenzip jq
+# Linux: install the equivalents from your package manager.

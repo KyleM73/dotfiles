@@ -1,0 +1,53 @@
+// ~/.config/zellij/config.kdl
+// Zellij — terminal multiplexer / window manager. Think of it as the "VSCode
+// window" that holds your editor, an integrated terminal, and a file-manager
+// pane in ONE ghostty window — and, crucially over SSH, keeps them alive if you
+// disconnect (detach with Ctrl o, d; reattach later with `zellij attach`).
+//
+// Default keybindings are kept — they're discoverable from the on-screen status
+// bar, which shows the Ctrl- prefixes. The essentials:
+//   Ctrl p   PANE mode:   n new pane, x close, arrows move focus, d/r split down/right
+//   Ctrl t   TAB mode:    n new tab, arrows switch, x close
+//   Ctrl n   RESIZE mode
+//   Ctrl s   SCROLL/SEARCH mode (Enter: edit scrollback in your editor)
+//   Ctrl o   SESSION mode: d detach (keeps it running to reattach later)
+//   Ctrl q   quit
+// Dump the full default config (all keys) any time with:
+//   zellij setup --dump-config
+
+// Built-in theme. Pairs with the suggested nvim colorscheme. Other built-ins:
+// catppuccin-mocha, gruvbox-dark, nord, dracula, ... (an unknown name just
+// falls back to the default theme).
+theme "tokyo-night"
+
+// Mouse support: click panes/tabs, select to copy, scroll. Works locally and
+// over SSH in ghostty.
+mouse_mode true
+
+// Cleaner look: hide per-pane borders. Set true if you'd rather see frames
+// (frames make the focused pane more obvious when you have many panes).
+pane_frames false
+
+// Copy behavior. With NO copy_command set, zellij copies via OSC52, which works
+// over SSH (ghostty forwards it to your Mac's clipboard) — so leave it unset on
+// remote boxes. On a LOCAL machine you can send copies straight to the system
+// clipboard instead by uncommenting the matching line (put it in a per-machine
+// override if it differs by host):
+//   copy_command "pbcopy"                          // macOS
+//   copy_command "wl-copy"                          // Linux / Wayland
+//   copy_command "xclip -selection clipboard"       // Linux / X11
+copy_clipboard "system"
+
+// Use your login shell. Uncomment to force one regardless of $SHELL.
+// default_shell "zsh"
+
+// Edit scrollback / open the buffer in an editor with Ctrl s then `e`.
+// Falls back to $EDITOR if unset.
+// scrollback_editor "nvim"
+
+// Remember pane/tab layout across restarts so a crashed/closed session can be
+// resurrected (`zellij attach` lists resurrectable sessions).
+session_serialization true
+
+// On the OS trying to close the window, detach rather than kill the session.
+on_force_close "detach"

@@ -35,6 +35,20 @@ for rc in bashrc zshrc; do
     echo "  ~/.$rc -> $DOTFILES/bashrc"
 done
 
+# XDG config directories (nvim, yazi, zellij) -> ~/.config/<name>
+XDG_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
+config_dirs="nvim yazi zellij"  # dirs under repo config/ to link into ~/.config
+mkdir -p "$XDG_CONFIG"
+echo "Linking config dirs into $XDG_CONFIG"
+for dir in $config_dirs; do
+    target="$XDG_CONFIG/$dir"
+    # Back up a real (non-symlink) existing dir, then link. -n stops ln from
+    # nesting the link inside an existing symlinked dir on re-run.
+    [ -e "$target" ] && [ ! -L "$target" ] && mv "$target" "$DOTFILES_BKP/"
+    ln -sfn "$DOTFILES/config/$dir" "$target"
+    echo "  $target -> $DOTFILES/config/$dir"
+done
+
 # Local git identity (untracked; never committed)
 GITLOCAL="$HOME/.gitconfig.local"
 if [ ! -f "$GITLOCAL" ]; then
@@ -68,6 +82,21 @@ if [ ! -f "$GITLOCAL" ]; then
     else
         echo "No TTY: create $GITLOCAL with your [user] name/email."
     fi
+fi
+
+# Install the CLI tools the nvim/zellij/yazi configs use (idempotent;
+# best-effort). Skip entirely with SKIP_DEPS=1. See install_deps.sh.
+if [ "${SKIP_DEPS:-0}" != "1" ] && [ -x "$DOTFILES/install_deps.sh" ]; then
+    if [ -t 0 ]; then
+        printf "\nInstall/upgrade developer tools now (nvim, zellij, yazi, fzf, ripgrep, ruff, ty)? [Y/n]: "
+        read -r ans
+    else
+        ans="y"  # non-interactive: assume yes
+    fi
+    case "${ans:-y}" in
+        [Nn]*) echo "Skipping tool install (run ./install_deps.sh anytime)." ;;
+        *)     "$DOTFILES/install_deps.sh" ;;
+    esac
 fi
 
 source ~/."$SYMLINK_BASENAME"

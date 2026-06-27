@@ -57,8 +57,15 @@ alias shellrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias bashrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias zshrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
 alias vimrc='vim ~/.vimrc'
+alias nvimrc='nvim ~/.config/nvim/init.lua'
 alias screenrc='vim ~/.screenrc'
 alias gitconfig='vim ~/.gitconfig'
+alias zellijrc='${EDITOR:-vim} ~/.config/zellij/config.kdl'
+alias yazirc='${EDITOR:-vim} ~/.config/yazi/yazi.toml'
+
+# Neovim / multiplexer shortcuts
+alias v='nvim'
+alias zj='zellij'
 
 # venv
 alias venv="source .venv/bin/activate"

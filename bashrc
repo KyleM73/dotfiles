@@ -75,11 +75,20 @@ path_prepend() {
 }
 path_prepend "/usr/local/bin"
 path_prepend "$HOME/bin"
+# ~/.local/bin holds uv-installed tools (ruff, ty) and any release binaries
+# install_deps.sh drops there (nvim/zellij/yazi on Linux); keep it ahead of
+# system paths so a current nvim wins over an older apt one.
+path_prepend "$HOME/.local/bin"
 export PATH
 
-# Default editor
-export EDITOR=vim
-export VISUAL=vim
+# Default editor: prefer neovim, fall back to vim (works on every box).
+if command -v nvim >/dev/null 2>&1; then
+    export EDITOR=nvim
+    export VISUAL=nvim
+else
+    export EDITOR=vim
+    export VISUAL=vim
+fi
 
 # Fix less issue in Docker
 export LESS="-R"
@@ -96,6 +105,19 @@ vscode() {
   fi
 }
 alias code="vscode"
+
+# yazi: terminal file manager. Use `y` (not plain `yazi`) so that on quit your
+# shell cd's to the directory you ended up in — the wrapper Yazi documents.
+if command -v yazi >/dev/null 2>&1; then
+    y() {
+        local tmp cwd
+        tmp="$(mktemp -t yazi-cwd.XXXXXX)"
+        yazi "$@" --cwd-file="$tmp"
+        cwd="$(cat -- "$tmp")"
+        [ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && cd -- "$cwd"
+        rm -f -- "$tmp"
+    }
+fi
 
 # uv (only if installed on this machine)
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
