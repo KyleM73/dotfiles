@@ -191,6 +191,26 @@ install_nerdfont_release() {  # download Hack Nerd Font into ~/.local/share/font
     rm -rf "$tmp"
 }
 
+lazygit_arch() { case "$ARCH" in x86_64|amd64) echo x86_64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }
+
+install_lazygit_release() {  # download lazygit release binary into ~/.local/bin (no root)
+    local a os ver tmp
+    a="$(lazygit_arch)"; [ -z "$a" ] && { echo "  ! lazygit: unsupported arch $ARCH"; return 1; }
+    if [ "$OS" = "Darwin" ]; then os="Darwin"; else os="Linux"; fi
+    echo "  → lazygit    prebuilt release ($os $a) -> $LOCAL_BIN"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] resolve latest tag; dl lazygit_<ver>_${os}_${a}.tar.gz; cp lazygit -> $LOCAL_BIN"; return 0; fi
+    command -v curl >/dev/null 2>&1 || { echo "  ! lazygit: need curl"; return 1; }
+    # lazygit asset names embed the version, so resolve the latest tag first.
+    ver="$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest 2>/dev/null | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p' | head -1)"
+    [ -z "$ver" ] && { echo "  ! lazygit: could not resolve latest version"; return 1; }
+    tmp="$(mktemp -d)"
+    dl "https://github.com/jesseduffield/lazygit/releases/download/v${ver}/lazygit_${ver}_${os}_${a}.tar.gz" "$tmp/lg.tar.gz" || { rm -rf "$tmp"; return 1; }
+    tar -xzf "$tmp/lg.tar.gz" -C "$tmp" lazygit 2>/dev/null || tar -xzf "$tmp/lg.tar.gz" -C "$tmp" || { rm -rf "$tmp"; return 1; }
+    install -m 0755 "$tmp/lazygit" "$LOCAL_BIN/lazygit" || { rm -rf "$tmp"; return 1; }
+    rm -rf "$tmp"
+    command -v lazygit >/dev/null 2>&1
+}
+
 # Install a tool that may not be packaged: brew -> prebuilt release -> note.
 smart_install() {  # smart_install <binary> <tool> <release_fn>
     local bin="$1" tool="$2" relfn="$3"
@@ -251,6 +271,20 @@ echo
 echo "Finder + search:"
 ensure_pkg fzf fzf     "https://github.com/junegunn/fzf"
 ensure_pkg rg  ripgrep "https://github.com/BurntSushi/ripgrep"
+
+# ---- git UI (lazygit, used by lazygit.nvim) --------------------------------
+echo
+echo "Git UI:"
+if command -v lazygit >/dev/null 2>&1; then
+    echo "  ✓ lazygit    present"
+elif [ "$PM" = "brew" ]; then
+    echo "  → lazygit    brew install"
+    pm_install lazygit
+elif have_dl; then
+    install_lazygit_release || echo "  ! lazygit: see https://github.com/jesseduffield/lazygit"
+else
+    echo "  ! lazygit: install from https://github.com/jesseduffield/lazygit"
+fi
 
 # ---- C compiler (treesitter compiles parsers on install) -------------------
 echo

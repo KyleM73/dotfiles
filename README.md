@@ -188,18 +188,30 @@ features you haven't turned on yet carry `enabled = false`. To add one, open its
 file, flip `enabled = false` → `true`, and restart nvim — lazy installs it. No
 rewriting required.
 
-| Plugin            | File                  | State    | Role (VS Code analogue)            |
-| ----------------- | --------------------- | -------- | ---------------------------------- |
-| neo-tree          | `plugins/filetree.lua`| **on**   | Explorer sidebar                   |
-| gitsigns          | `plugins/git.lua`     | **on**   | Source Control gutter              |
-| treesitter        | `plugins/treesitter.lua`| **on** | Syntax highlighting                |
-| fzf-lua           | `plugins/finder.lua`  | **on**   | `Cmd-P` + project search           |
-| LSP (ruff + ty)   | `plugins/lsp.lua`     | **on**   | IntelliSense for Python            |
-| blink.cmp         | `plugins/lsp.lua`     | **on**   | Autocomplete popup                 |
-| colorscheme       | `plugins/ui.lua`      | off      | Theme                              |
-| lualine           | `plugins/ui.lua`      | off      | Status bar                         |
-| which-key         | `plugins/editor.lua`  | off      | Keybinding hints popup             |
-| autopairs         | `plugins/editor.lua`  | off      | Auto-close brackets                |
+| Plugin            | File                     | Role (VS Code analogue)             |
+| ----------------- | ------------------------ | ----------------------------------- |
+| neo-tree          | `plugins/filetree.lua`   | Explorer sidebar                    |
+| gitsigns          | `plugins/git.lua`        | Source Control gutter (hunks/blame) |
+| diffview          | `plugins/git.lua`        | Side-by-side diff + file history    |
+| lazygit           | `plugins/git.lua`        | Full git UI (needs `lazygit` binary)|
+| treesitter        | `plugins/treesitter.lua` | Syntax highlighting                 |
+| fzf-lua           | `plugins/finder.lua`     | `Cmd-P` + project search            |
+| LSP (ruff + ty)   | `plugins/lsp.lua`        | IntelliSense for Python             |
+| blink.cmp         | `plugins/lsp.lua`        | Autocomplete popup                  |
+| vscode.nvim       | `plugins/ui.lua`         | Theme (VS Code Dark Modern look)    |
+| lualine           | `plugins/ui.lua`         | Status bar                          |
+| indent-blankline  | `plugins/ui.lua`         | Indent guides                       |
+| bufferline        | `plugins/ui.lua`         | Editor tabs                         |
+| which-key         | `plugins/editor.lua`     | Keybinding hints popup              |
+| autopairs         | `plugins/editor.lua`     | Auto-close brackets                 |
+| vim-sleuth        | `plugins/editor.lua`     | Auto-detect indentation             |
+| todo-comments     | `plugins/editor.lua`     | Highlight TODO/FIXME                 |
+| trouble           | `plugins/editor.lua`     | Problems / diagnostics panel        |
+| flash             | `plugins/editor.lua`     | Jump-to-anywhere motion (`s`)       |
+| persistence       | `plugins/editor.lua`     | Session restore (per project)       |
+
+Disabled by default (flip `enabled = true` to use): **tokyonight** (alternative
+theme, `ui.lua`) and **mason** (LSP-server installer, `lsp.lua`).
 
 Key mappings (leader = `Space`):
 
@@ -217,8 +229,14 @@ Key mappings (leader = `Space`):
 | `]c` / `[c`            | Next / previous git hunk                 |
 | `<Space>hs` / `hr` / `hp` | Stage / reset / preview git hunk      |
 | `<Space>hb` / `<Space>tb` | Blame line / toggle inline blame      |
-| `<S-l>` / `<S-h>`      | Next / previous buffer                   |
+| `<S-l>` / `<S-h>`      | Next / previous buffer (bufferline tab)  |
 | `<C-h/j/k/l>`          | Move between splits                      |
+| `s` / `S`              | Flash jump / treesitter jump             |
+| `<Space>gg`            | LazyGit (full git UI)                    |
+| `<Space>gd` / `gh` / `gq` | Diff view / file history / close      |
+| `<Space>xx`            | Problems panel — all diagnostics (Trouble)|
+| `]t` / `[t`            | Next / previous TODO comment             |
+| `<Space>qs` / `<Space>ql` | Restore session (this dir / last)     |
 
 **Python LSP uses the Astral stack** (`ruff` for lint/format, `ty` for types) —
 all Rust, no Node/pyright. Install with `uv tool install ruff ty`; both

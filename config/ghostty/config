@@ -6,11 +6,13 @@
 #   ghostty +list-fonts      browse available fonts (grep -i nerd)
 #   ghostty +list-themes     browse built-in themes
 
-# Primary font. Hack Nerd Font includes the icon glyphs that neovim (neo-tree,
-# lualine) and yazi use. install_deps.sh installs it for you.
+# Primary font. The "Mono" Nerd Font variant has every glyph pre-scaled to a
+# single terminal cell, so icons render crisp and aligned. (The non-Mono
+# "Hack Nerd Font" has wide icon glyphs that the terminal squeezes into one
+# cell, making them look narrow/squished.) install_deps.sh installs the family.
 # NOTE: Ghostty also falls back to bundled Nerd Font symbols automatically, so
 # icons render even if this font is missing — this just makes Hack the main font.
-font-family = "Hack Nerd Font"
+font-family = "Hack Nerd Font Mono"
 # font-size = 13
 
 # Common extras — uncomment and tweak to taste:

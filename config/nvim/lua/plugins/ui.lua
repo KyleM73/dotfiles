@@ -53,4 +53,42 @@ return {
       },
     },
   },
+
+  ----------------------------------------------------------------------------
+  -- Indent guides — faint vertical lines marking indent levels (like VS Code).
+  ----------------------------------------------------------------------------
+  {
+    "lukas-reineke/indent-blankline.nvim",
+    main = "ibl",
+    event = { "BufReadPost", "BufNewFile" },
+    opts = {
+      indent = { char = "│" },
+      scope = { enabled = true, show_start = false, show_end = false },
+    },
+  },
+
+  ----------------------------------------------------------------------------
+  -- bufferline — open buffers as tabs along the top (VS Code editor tabs).
+  -- <S-h>/<S-l> cycle them (overriding the plain bnext/bprev in keymaps.lua).
+  ----------------------------------------------------------------------------
+  {
+    "akinsho/bufferline.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    event = "VeryLazy",
+    keys = {
+      { "<S-l>", "<cmd>BufferLineCycleNext<CR>", desc = "Next buffer" },
+      { "<S-h>", "<cmd>BufferLineCyclePrev<CR>", desc = "Prev buffer" },
+      { "<leader>bp", "<cmd>BufferLinePick<CR>", desc = "Pick buffer" },
+      { "<leader>bd", "<cmd>BufferLinePickClose<CR>", desc = "Pick buffer to close" },
+    },
+    opts = {
+      options = {
+        diagnostics = "nvim_lsp",            -- show LSP errors/warnings on the tabs
+        always_show_bufferline = true,
+        offsets = {
+          { filetype = "neo-tree", text = "Explorer", separator = true },
+        },
+      },
+    },
+  },
 }
