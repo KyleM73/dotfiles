@@ -65,7 +65,9 @@ alias yazirc='${EDITOR:-vim} ~/.config/yazi/yazi.toml'
 
 # Neovim / multiplexer shortcuts
 alias v='nvim'
-alias zj='zellij'
+alias zj='zellij'                  # default workspace: nvim editor + terminal below
+alias zjw='zellij --layout wide'   # editor left / terminal right
+alias zjs='zellij --layout shell'  # plain shell session (no auto-nvim)
 
 # venv
 alias venv="source .venv/bin/activate"

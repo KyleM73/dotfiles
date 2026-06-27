@@ -191,6 +191,7 @@ rewriting required.
 | Plugin            | File                     | Role (VS Code analogue)             |
 | ----------------- | ------------------------ | ----------------------------------- |
 | neo-tree          | `plugins/filetree.lua`   | Explorer sidebar                    |
+| yazi.nvim         | `plugins/filetree.lua`   | Floating yazi → open file in editor |
 | gitsigns          | `plugins/git.lua`        | Source Control gutter (hunks/blame) |
 | diffview          | `plugins/git.lua`        | Side-by-side diff + file history    |
 | lazygit           | `plugins/git.lua`        | Full git UI (needs `lazygit` binary)|
@@ -253,12 +254,29 @@ clipboard is used.
 
 ## Zellij
 
-Terminal multiplexer, configured in `config/zellij/config.kdl`. Default
-keybindings are kept (the on-screen status bar shows the `Ctrl-` prefixes).
-Essentials: `Ctrl p` pane mode, `Ctrl t` tabs, `Ctrl s` scroll/search,
-`Ctrl o` then `d` to **detach** (reattach with `zellij attach`), `Ctrl q` quit.
-Copy uses OSC52 by default (works over SSH); on a local Mac you can set
-`copy_command "pbcopy"`. Alias: `zj`.
+Terminal multiplexer / workspace, configured in `config/zellij/`. It wraps the
+editor in VS Code-like chrome: an integrated terminal pane, project tabs, a
+status bar, a theme matching the editor, and session persistence (survives SSH
+disconnects — detach with `Ctrl o` then `d`, reattach with `zellij attach`).
+
+- **Theme:** a `vscode-dark` palette (defined in `config.kdl`) matching the
+  vscode.nvim editor. Change the `theme` line to swap it.
+- **Layouts** (`config/zellij/layouts/`), each launchable via `zellij --layout NAME`:
+
+  | Layout | Arrangement | Alias |
+  | ------- | ------------------------------------------- | ----- |
+  | default | nvim editor on top, terminal strip below (auto-opens nvim; used for every session) | `zj`  |
+  | wide    | nvim editor left, terminal right            | `zjw` |
+  | shell   | plain shell, no auto-nvim (quick one-offs)  | `zjs` |
+
+  Open one in a new tab from a running session: `zellij action new-tab --layout wide`.
+- **File manager:** browse with yazi *inside* nvim (`<Space>y`) — pick a file and
+  it opens in the editor; close the float to hide it. (A yazi *zellij pane* can't
+  hand a file to a running nvim without fragile RPC, so it's wired in-editor.)
+- **Keys:** zellij defaults are kept (status bar shows the `Ctrl-` prefixes):
+  `Ctrl p` panes, `Ctrl t` tabs, `Ctrl s` scrollback (Enter edits it in nvim),
+  `Ctrl o` session, `Ctrl q` quit.
+- Copy uses OSC52 (works over SSH); on a local Mac set `copy_command "pbcopy"`.
 
 ## Yazi
 

@@ -1,0 +1,17 @@
+// ~/.config/zellij/layouts/default.kdl
+// Default workspace (used for every session via default_layout in config.kdl):
+// nvim editor on top, a terminal strip below, with the tab + status bars.
+//   - Side-by-side instead (editor left / terminal right):  zellij --layout wide
+//   - Plain shell session (no nvim):                        zellij --layout shell
+layout {
+    pane size=1 borderless=true {
+        plugin location="zellij:tab-bar"
+    }
+    pane command="nvim" {
+        focus true
+    }
+    pane size="25%"
+    pane size=2 borderless=true {
+        plugin location="zellij:status-bar"
+    }
+}

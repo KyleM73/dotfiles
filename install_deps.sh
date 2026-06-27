@@ -211,6 +211,23 @@ install_lazygit_release() {  # download lazygit release binary into ~/.local/bin
     command -v lazygit >/dev/null 2>&1
 }
 
+ts_cli_arch() { case "$ARCH" in x86_64|amd64) echo x64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }
+
+install_tree_sitter_cli() {  # download the tree-sitter CLI into ~/.local/bin (no root)
+    local a os tmp
+    a="$(ts_cli_arch)"; [ -z "$a" ] && { echo "  ! tree-sitter: unsupported arch $ARCH"; return 1; }
+    if [ "$OS" = "Darwin" ]; then os="macos"; else os="linux"; fi
+    echo "  → tree-sitter prebuilt release ($os-$a) -> $LOCAL_BIN"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] dl tree-sitter-${os}-${a}.gz; gunzip -> $LOCAL_BIN/tree-sitter"; return 0; fi
+    have_dl || { echo "  ! tree-sitter: need curl or wget"; return 1; }
+    tmp="$(mktemp -d)"
+    dl "https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-${os}-${a}.gz" "$tmp/ts.gz" || { rm -rf "$tmp"; return 1; }
+    gunzip -c "$tmp/ts.gz" > "$tmp/tree-sitter" || { rm -rf "$tmp"; return 1; }
+    install -m 0755 "$tmp/tree-sitter" "$LOCAL_BIN/tree-sitter" || { rm -rf "$tmp"; return 1; }
+    rm -rf "$tmp"
+    command -v tree-sitter >/dev/null 2>&1
+}
+
 # Install a tool that may not be packaged: brew -> prebuilt release -> note.
 smart_install() {  # smart_install <binary> <tool> <release_fn>
     local bin="$1" tool="$2" relfn="$3"
@@ -288,9 +305,9 @@ fi
 
 # ---- C compiler (treesitter compiles parsers on install) -------------------
 echo
-echo "Build prerequisite (treesitter):"
+echo "Build prerequisites (treesitter parsers):"
 if command -v cc >/dev/null 2>&1 || command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1; then
-    echo "  ✓ compiler   present"
+    echo "  ✓ compiler    present"
 else
     case "$PM" in
         brew)    echo "  ! run: xcode-select --install" ;;
@@ -301,6 +318,15 @@ else
         apk)     pm_install build-base ;;
         *)       echo "  ! install a C compiler (gcc/clang) + make" ;;
     esac
+fi
+# tree-sitter CLI: nvim-treesitter's `main` branch builds parsers with it.
+# (Homebrew's `tree-sitter` is the library, not the CLI, so use the release binary.)
+if command -v tree-sitter >/dev/null 2>&1; then
+    echo "  ✓ tree-sitter present"
+elif have_dl; then
+    install_tree_sitter_cli || echo "  ! tree-sitter CLI: https://github.com/tree-sitter/tree-sitter/releases"
+else
+    echo "  ! tree-sitter CLI: install from https://github.com/tree-sitter/tree-sitter/releases"
 fi
 
 # ---- Python tooling via uv (no brew / no root needed) ----------------------

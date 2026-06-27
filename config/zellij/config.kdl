@@ -15,10 +15,35 @@
 // Dump the full default config (all keys) any time with:
 //   zellij setup --dump-config
 
-// Built-in theme. Pairs with the suggested nvim colorscheme. Other built-ins:
-// catppuccin-mocha, gruvbox-dark, nord, dracula, ... (an unknown name just
-// falls back to the default theme).
-theme "tokyo-night"
+// Theme — "terminal" follows Ghostty's own colors: ANSI palette slots 0-15
+// render with whatever Ghostty maps them to, so zellij's UI matches your
+// terminal theme and tracks it if you change Ghostty later. (nvim themes its own
+// pane via vscode.nvim.) For a fixed theme instead, set e.g. theme "tokyo-night"
+// (catppuccin-mocha, gruvbox-dark, nord, ...).
+theme "terminal"
+
+themes {
+    // 0-15 = the terminal's ANSI palette, which Ghostty controls.
+    terminal {
+        fg 7
+        bg 0
+        black 0
+        red 1
+        green 2
+        yellow 3
+        blue 4
+        magenta 5
+        cyan 6
+        white 7
+        orange 3
+    }
+}
+
+// Open the VS Code-like workspace (nvim editor + terminal) for every session.
+// Layouts live in ~/.config/zellij/layouts/. Alternatives:
+//   zellij --layout wide   (editor left / terminal right;  alias: zjw)
+//   zellij --layout shell  (plain shell, no nvim;          alias: zjs)
+default_layout "default"
 
 // Mouse support: click panes/tabs, select to copy, scroll. Works locally and
 // over SSH in ghostty.
@@ -42,8 +67,7 @@ copy_clipboard "system"
 // default_shell "zsh"
 
 // Edit scrollback / open the buffer in an editor with Ctrl s then `e`.
-// Falls back to $EDITOR if unset.
-// scrollback_editor "nvim"
+scrollback_editor "nvim"
 
 // Remember pane/tab layout across restarts so a crashed/closed session can be
 // resurrected (`zellij attach` lists resurrectable sessions).
@@ -51,3 +75,14 @@ session_serialization true
 
 // On the OS trying to close the window, detach rather than kill the session.
 on_force_close "detach"
+
+// Let Ctrl+h reach Neovim in normal mode: nvim uses Ctrl+h/j/k/l to move between
+// its splits, but zellij binds Ctrl+h to enter "Move" mode by default, which
+// would shadow it. (Ctrl+j/k/l aren't bound by zellij, so they already pass
+// through. Zellij's own pane navigation is on Alt+h/j/k/l.) Move mode is still
+// reachable from other modes, e.g. Ctrl+p then Ctrl+h.
+keybinds {
+    normal {
+        unbind "Ctrl h"
+    }
+}

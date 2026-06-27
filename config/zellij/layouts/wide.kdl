@@ -1,0 +1,17 @@
+// ~/.config/zellij/layouts/wide.kdl
+// Side-by-side workspace: nvim editor on the left, terminal on the right.
+// Launch with:  zellij --layout wide   (alias: zjw)
+layout {
+    pane size=1 borderless=true {
+        plugin location="zellij:tab-bar"
+    }
+    pane split_direction="vertical" {
+        pane command="nvim" {
+            focus true
+        }
+        pane size="40%"
+    }
+    pane size=2 borderless=true {
+        plugin location="zellij:status-bar"
+    }
+}
