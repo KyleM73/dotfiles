@@ -8,6 +8,9 @@ map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 -- Toggle soft-wrap (off by default; handy for prose / markdown).
 map("n", "<leader>tw", "<cmd>set wrap!<CR>", { desc = "[T]oggle [w]rap" })
 
+-- Floating cheat-sheet overlay (a tab per tool). See lua/config/cheatsheet.lua.
+map("n", "<leader>?", function() require("config.cheatsheet").open() end, { desc = "Cheat sheet overlay" })
+
 -- Move between splits/windows with Ctrl + h/j/k/l.
 map("n", "<C-h>", "<C-w>h", { desc = "Go to left window" })
 map("n", "<C-j>", "<C-w>j", { desc = "Go to lower window" })

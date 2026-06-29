@@ -218,6 +218,7 @@ Key mappings (leader = `Space`):
 
 | Mapping                | Action                                   |
 | ---------------------- | ---------------------------------------- |
+| `<Space>?`             | Cheat-sheet overlay (a tab per tool)     |
 | `<Space>e`             | Toggle file explorer (neo-tree)          |
 | `<Space><Space>`       | Find files (fuzzy, like `Cmd-P`)         |
 | `<Space>fg`            | Grep across the project                  |
