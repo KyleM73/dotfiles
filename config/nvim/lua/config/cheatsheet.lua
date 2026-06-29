@@ -9,7 +9,7 @@ local M = {}
 -- Each section is one tab. Keep keybinds here in sync with the configs.
 M.sections = {
   { name = "Neovim", lines = {
-    "Leader = <Space>   (press <Space> and pause -> which-key shows leader maps)",
+    "Leader = <Space>   (which-key pops these up as you type)",
     "",
     "<C-h/j/k/l>      move between splits",
     "<S-l> / <S-h>    next / prev buffer",
@@ -68,14 +68,14 @@ M.sections = {
     "<leader>xt       TODOs",
   }},
   { name = "Motion", lines = {
-    "s + chars        flash jump: type the target, then the label that appears",
+    "s then chars     flash jump (then press the shown label)",
     "S                flash by treesitter node",
     "]t / [t          next / prev TODO comment",
   }},
   { name = "Files", lines = {
     "<leader>e        toggle file explorer (neo-tree)",
     "<leader>o        focus the explorer",
-    "<leader>y        open yazi at current file (Enter opens it in the editor)",
+    "<leader>y        open yazi here (Enter opens it in editor)",
     "<leader>Y        open yazi at cwd",
     "<leader>yr       resume last yazi",
   }},
@@ -149,10 +149,19 @@ end
 function M.open()
   state.buf = vim.api.nvim_create_buf(false, true)
   vim.bo[state.buf].bufhidden = "wipe"
-  -- Right ~1/3-width, near-full-height column anchored to the right edge.
-  -- (min 48 so the two tab rows fit; min stops it getting too narrow.)
-  local width = math.min(math.max(48, math.floor(vim.o.columns / 3)), vim.o.columns - 4)
-  local height = math.max(10, vim.o.lines - 4)
+  -- Top-right corner. Width tracks the longest line (so nothing wraps) but stays
+  -- between 1/3 and 1/2 of the screen; height fits the tallest tab, capped at
+  -- half the screen (the hints are short, so it never needs full height).
+  local maxlen, maxrows = 0, 0
+  for _, s in ipairs(M.sections) do
+    maxrows = math.max(maxrows, #s.lines)
+    for _, l in ipairs(s.lines) do
+      maxlen = math.max(maxlen, #l)
+    end
+  end
+  local lo, hi = math.floor(vim.o.columns / 3), math.floor(vim.o.columns / 2)
+  local width = math.max(lo, math.min(maxlen + 4, hi)) -- +4: 2-space indent + pad
+  local height = math.min(math.floor(vim.o.lines / 2), maxrows + 6) -- +6: tab rows + chrome
   state.width = width
   state.win = vim.api.nvim_open_win(state.buf, true, {
     relative = "editor",
