@@ -108,17 +108,29 @@ M.current = 1
 local state = { buf = nil, win = nil, width = 84 }
 
 local function render()
-  local sec = M.sections[M.current]
-  local tabs = {}
+  -- Tab bar across two rows so all tabs fit a narrow column.
+  local total = #M.sections
+  local half = math.ceil(total / 2)
+  local row1, row2 = {}, {}
   for i, s in ipairs(M.sections) do
-    tabs[#tabs + 1] = (i == M.current) and ("[" .. s.name .. "]") or (" " .. s.name .. " ")
+    local label = (i == M.current) and ("[" .. s.name .. "]") or (" " .. s.name .. " ")
+    if i <= half then
+      row1[#row1 + 1] = label
+    else
+      row2[#row2 + 1] = label
+    end
   end
-  local lines = { table.concat(tabs, " "), string.rep("─", state.width), "" }
-  for _, l in ipairs(sec.lines) do
+  local lines = {
+    table.concat(row1, " "),
+    table.concat(row2, " "),
+    string.rep("─", state.width),
+    "",
+  }
+  for _, l in ipairs(M.sections[M.current].lines) do
     lines[#lines + 1] = "  " .. l
   end
   lines[#lines + 1] = ""
-  lines[#lines + 1] = "  [Tab]/[S-Tab] or h/l: switch tab · 1-9: jump · q/Esc: close"
+  lines[#lines + 1] = "  Tab/h/l: switch · 1-9: jump · q/Esc: close"
   vim.bo[state.buf].modifiable = true
   vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
   vim.bo[state.buf].modifiable = false
@@ -137,15 +149,17 @@ end
 function M.open()
   state.buf = vim.api.nvim_create_buf(false, true)
   vim.bo[state.buf].bufhidden = "wipe"
-  local width = math.min(84, vim.o.columns - 8)
-  local height = math.min(26, vim.o.lines - 6)
+  -- Right ~1/3-width, near-full-height column anchored to the right edge.
+  -- (min 48 so the two tab rows fit; min stops it getting too narrow.)
+  local width = math.min(math.max(48, math.floor(vim.o.columns / 3)), vim.o.columns - 4)
+  local height = math.max(10, vim.o.lines - 4)
   state.width = width
   state.win = vim.api.nvim_open_win(state.buf, true, {
     relative = "editor",
     width = width,
     height = height,
-    row = math.floor((vim.o.lines - height) / 2),
-    col = math.floor((vim.o.columns - width) / 2),
+    row = 1,
+    col = vim.o.columns - width - 2,
     style = "minimal",
     border = "rounded",
     title = " Cheat sheet ",
