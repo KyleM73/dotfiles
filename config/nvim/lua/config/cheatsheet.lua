@@ -44,11 +44,10 @@ M.sections = {
     "]d / [d          next / prev diagnostic",
   }},
   { name = "Complete", lines = {
-    "Tab              accept the suggestion",
+    "Tab / Enter      accept the suggestion",
     "Up/Down or C-n/C-p   move the selection",
     "<C-space>        open / toggle the menu",
     "<C-e>            hide the menu",
-    "Enter            normal newline (does NOT accept)",
   }},
   { name = "Git", lines = {
     "<leader>gg       lazygit (full git UI)",
