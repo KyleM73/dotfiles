@@ -1,17 +1,45 @@
 // ~/.config/zellij/layouts/default.kdl
-// Default workspace (used for every session via default_layout in config.kdl):
-// nvim editor on top, a terminal strip below, with the tab + status bars.
-//   - Side-by-side instead (editor left / terminal right):  zellij --layout wide
-//   - Plain shell session (no nvim):                        zellij --layout shell
+// Default workspace: full-screen nvim editor with a small, PINNED floating
+// terminal in the bottom-right corner. "Pinned" keeps it visible even while the
+// editor pane is focused; toggle it away/back with Alt+f, and move/resize it in
+// pane mode (Ctrl+p, then arrows / n / +/-).
+//
+// New tabs (Ctrl+t then n) open as a plain shell — see new_tab_template below.
+// Other layouts: `zellij --layout wide` (editor left / terminal right; alias
+// zjw) and `zellij --layout shell` (plain shell session; alias zjs).
 layout {
-    pane size=1 borderless=true {
-        plugin location="zellij:tab-bar"
+    tab name="edit" focus=true {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        pane command="nvim" {
+            focus true
+        }
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+        // Small pinned floating terminal, bottom-right. Percentages so it lands
+        // sensibly on any screen size (laptop, big monitor, the remote box).
+        floating_panes {
+            pane {
+                name "terminal"
+                x "53%"
+                y "60%"
+                width "45%"
+                height "38%"
+                pinned true
+            }
+        }
     }
-    pane command="nvim" {
-        focus true
-    }
-    pane size="25%"
-    pane size=2 borderless=true {
-        plugin location="zellij:status-bar"
+
+    // New tabs are just a flat shell (no editor, no split).
+    new_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        pane
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
     }
 }

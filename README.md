@@ -266,7 +266,7 @@ disconnects — detach with `Ctrl o` then `d`, reattach with `zellij attach`).
 
   | Layout | Arrangement | Alias |
   | ------- | ------------------------------------------- | ----- |
-  | default | nvim editor on top, terminal strip below (auto-opens nvim; used for every session) | `zj`  |
+  | default | full-screen nvim + a small **pinned floating** terminal, bottom-right (`Alt+f` toggles it). New tabs (`Ctrl+t` `n`) open as a plain shell. | `zj`  |
   | wide    | nvim editor left, terminal right            | `zjw` |
   | shell   | plain shell, no auto-nvim (quick one-offs)  | `zjs` |
 
