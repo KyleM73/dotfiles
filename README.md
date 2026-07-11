@@ -312,7 +312,3 @@ auto-installs itself and the plugin set on first launch. Leader key is `Space`:
 The old Vim config is kept as-is; Neovim (above) is the primary editor. `$EDITOR`
 prefers `nvim` and falls back to `vim` on machines without it — git follows suit
 (no hardcoded `core.editor`).
-
-## License
-
-MIT — see [LICENSE](LICENSE).
