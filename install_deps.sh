@@ -13,6 +13,7 @@
 #     neovim  — apt ships < 0.11; the Python LSP needs the native vim.lsp API
 #     fzf     — apt ships < 0.48; the shell keybindings need `fzf --bash/--zsh`
 #     zellij, yazi, lazygit, glow — not packaged on Debian/Ubuntu
+#     zoxide, ripgrep, bat, fd — distro versions lag years; upgraded when old
 # Python tools (ruff, ty) always go through uv (no brew, no root).
 #
 # Usage:
@@ -233,6 +234,60 @@ install_goreleaser_release() {  # install_goreleaser_release <owner/repo> <bin>
 }
 install_lazygit_release() { install_goreleaser_release jesseduffield/lazygit lazygit; }
 install_glow_release()    { install_goreleaser_release charmbracelet/glow    glow; }
+
+# rust-style projects (zoxide, ripgrep, bat, fd) name assets
+# <prefix>-[v]<ver>-<rust-triple>.tar.gz; the binary is often in a nested dir.
+# x86_64 Linux builds are musl everywhere; aarch64 varies per project.
+install_rust_release() {  # install_rust_release <owner/repo> <asset-prefix> <bin> <vprefix:v|""> <aarch64-libc:musl|gnu>
+    local repo="$1" prefix="$2" bin="$3" vp="$4" a64libc="${5:-musl}" a triple tag ver tmp path
+    a="$(rust_arch)"; [ -z "$a" ] && { echo "  ! $bin: unsupported arch $ARCH"; return 1; }
+    if [ "$OS" = "Darwin" ]; then
+        triple="${a}-apple-darwin"
+    elif [ "$a" = "aarch64" ]; then
+        triple="aarch64-unknown-linux-${a64libc}"
+    else
+        triple="x86_64-unknown-linux-musl"
+    fi
+    printf '  → %-10s prebuilt release (%s) -> %s\n' "$bin" "$triple" "$LOCAL_BIN"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] resolve latest tag; dl ${prefix}-${vp}<ver>-${triple}.tar.gz; cp $bin -> $LOCAL_BIN"; return 0; fi
+    tag="$(github_latest_tag "$repo")" || { echo "  ! $bin: could not resolve latest version (need curl + github.com)"; return 1; }
+    ver="${tag#v}"
+    tmp="$(mktemp -d)"
+    dl "https://github.com/${repo}/releases/download/${tag}/${prefix}-${vp}${ver}-${triple}.tar.gz" "$tmp/$bin.tar.gz" || { rm -rf "$tmp"; return 1; }
+    tar -xzf "$tmp/$bin.tar.gz" -C "$tmp" || { rm -rf "$tmp"; return 1; }
+    path="$(find "$tmp" -type f -name "$bin" | head -1)"
+    [ -z "$path" ] && { rm -rf "$tmp"; return 1; }
+    install -m 0755 "$path" "$LOCAL_BIN/$bin" || { rm -rf "$tmp"; return 1; }
+    rm -rf "$tmp"
+    command -v "$bin" >/dev/null 2>&1
+}
+
+# First line of `<bin> --version` -> "MAJ.MIN" (works when a space or v
+# precedes the number, as in "zoxide v0.9.8" / "ripgrep 14.1.1" / "bat 0.25.0").
+ver_mm() { "$1" --version 2>/dev/null | sed -n '1s/.*[ v]\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p'; }
+
+ver_lt() {  # ver_lt <MAJ.MIN> <MAJ.MIN> — true if $1 is older than $2 (or unparseable)
+    [ -z "$1" ] && return 0
+    local vmaj="${1%%.*}" vmin="${1#*.}" fmaj="${2%%.*}" fmin="${2#*.}"
+    [ "$vmaj" -ge 0 ] 2>/dev/null || return 0   # garbage -> treat as old
+    [ "$vmaj" -lt "$fmaj" ] && return 0
+    [ "$vmaj" -eq "$fmaj" ] && [ "$vmin" -lt "$fmin" ] && return 0
+    return 1
+}
+
+maybe_upgrade() {  # maybe_upgrade <bin> <floor> <install_cmd...> — install when missing or older than floor
+    local bin="$1" floor="$2"; shift 2
+    local v=""
+    if command -v "$bin" >/dev/null 2>&1; then
+        v="$(ver_mm "$bin")"
+        if ! ver_lt "$v" "$floor"; then
+            printf '  ✓ %-10s present (%s)\n' "$bin" "$v"
+            return 0
+        fi
+        echo "  ($bin ${v:-?} is older than $floor; installing a current release)"
+    fi
+    "$@" || printf '  ! %-10s not installed/upgraded\n' "$bin"
+}
 
 install_fzf_release() {  # download the fzf binary into ~/.local/bin (no root)
     local a os tag ver tmp
@@ -463,6 +518,20 @@ done
 if [ "$PM" = "apt-get" ] && [ "$DRY_RUN" != "1" ]; then
     command -v fdfind >/dev/null 2>&1 && [ ! -e "$LOCAL_BIN/fd" ]  && ln -sf "$(command -v fdfind)" "$LOCAL_BIN/fd"
     command -v batcat >/dev/null 2>&1 && [ ! -e "$LOCAL_BIN/bat" ] && ln -sf "$(command -v batcat)" "$LOCAL_BIN/bat"
+fi
+
+# ---- keep the shell/preview tools current -----------------------------------
+# Distro packages of these lag years behind (Ubuntu 22.04: zoxide 0.4, bat
+# 0.19, fd 8, rg 13). When one is missing or older than the floor, install a
+# current release into ~/.local/bin (which PATH prefers). Skipped under brew —
+# it stays current on its own. Floors ≈ what current distros ship; bump freely.
+if [ "$PM" != "brew" ]; then
+    echo
+    echo "Version-gated upgrades (release binaries into ~/.local/bin):"
+    maybe_upgrade zoxide 0.9  install_rust_release ajeetdsouza/zoxide zoxide  zoxide "" musl
+    maybe_upgrade rg     14.0 install_rust_release BurntSushi/ripgrep ripgrep rg     "" gnu
+    maybe_upgrade bat    0.24 install_rust_release sharkdp/bat        bat     bat    v  gnu
+    maybe_upgrade fd     10.0 install_rust_release sharkdp/fd         fd      fd     v  gnu
 fi
 
 # ---- Nerd Font (icons in neovim / yazi) ------------------------------------

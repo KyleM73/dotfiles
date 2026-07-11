@@ -136,6 +136,9 @@ package manager and does the right thing per platform:
   (< 0.48, too old for the shell keybindings) lag, and the rest aren't packaged
   on Debian/Ubuntu — where it also symlinks `fdfind` → `fd` and `batcat` →
   `bat` so Yazi's previews find them.
+- **zoxide, ripgrep, bat, and fd** get the same treatment when the distro's
+  version is years old (e.g. Ubuntu 22.04's zoxide 0.4): a current release
+  goes into `~/.local/bin`, which `PATH` prefers.
 - **`ruff` + `ty`** always go through **`uv`** (cross-platform, no root); `uv`
   itself is installed if missing.
 
