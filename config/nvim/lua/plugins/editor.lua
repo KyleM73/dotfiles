@@ -93,10 +93,12 @@ return {
   {
     "folke/persistence.nvim",
     lazy = false, -- load at startup so the auto-restore autocmd registers in time
-    opts = {
-      options = { "buffers", "curdir", "tabpages", "winsize", "help", "globals", "folds" },
-    },
+    opts = {},
     config = function(_, opts)
+      -- persistence saves with :mksession, which honors 'sessionoptions' (it has
+      -- no options= key of its own). Exclude "terminal"/"blank" so restored
+      -- sessions don't resurrect old terminal buffers.
+      vim.opt.sessionoptions = "buffers,curdir,tabpages,winsize,help,globals,folds"
       local persistence = require("persistence")
       persistence.setup(opts)
       vim.api.nvim_create_autocmd("VimEnter", {

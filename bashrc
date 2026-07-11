@@ -1,4 +1,6 @@
-# Common settings for both Bash and Zsh
+# Common settings for both Bash and Zsh.
+# Environment (PATH, EDITOR, conda) is set first so scripts and `ssh host cmd`
+# shells get it; everything interactive-only lives below the `case $-` guard.
 
 # Check if running Zsh or Bash
 if [ -n "$ZSH_VERSION" ]; then
@@ -9,42 +11,88 @@ else
     SHELL_TYPE="unknown"
 fi
 
+# Prepend a dir to PATH only if it exists and isn't already there
+path_prepend() {
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) [ -d "$1" ] && PATH="$1:$PATH" ;;
+    esac
+}
+path_prepend "/usr/local/bin"
+path_prepend "$HOME/bin"
+# ~/.local/bin holds uv-installed tools (ruff, ty) and any release binaries
+# install_deps.sh drops there (nvim/fzf/zellij/yazi on Linux); keep it ahead of
+# system paths so a current nvim wins over an older apt one.
+path_prepend "$HOME/.local/bin"
+export PATH
+
+# uv's env file (adds its bin dir; only if installed on this machine)
+[ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+
+# Default editor: prefer neovim, fall back to vim (works on every box).
+if command -v nvim >/dev/null 2>&1; then
+    export EDITOR=nvim
+    export VISUAL=nvim
+else
+    export EDITOR=vim
+    export VISUAL=vim
+fi
+
+# Fix less issue in Docker
+export LESS="-R"
+
+# Faster Docker builds
+export COMPOSE_BAKE=true
+
+# Conda (lazy): nothing conda-related runs at startup; the first `conda` call
+# initializes it. Detects common install prefixes — override with CONDA_HOME,
+# disable with NO_CONDA=1. A conda that is merely on PATH (unlisted prefix) is
+# resolved lazily too, so startup never pays for `conda info --base` (~1s).
+if [ -z "${NO_CONDA:-}" ]; then
+    __CONDA_ROOT=""
+    for __d in "${CONDA_HOME:-}" "$HOME/anaconda3" "$HOME/miniconda3" "$HOME/miniforge3" \
+               "$HOME/mambaforge" "$HOME/opt/anaconda3" "$HOME/opt/miniconda3" \
+               "/opt/homebrew/Caskroom/miniconda/base" "/opt/homebrew/Caskroom/miniforge/base" \
+               "/usr/local/Caskroom/miniconda/base" "/usr/local/Caskroom/miniforge/base" \
+               "/opt/conda"; do
+        [ -n "$__d" ] && [ -x "$__d/bin/conda" ] && { __CONDA_ROOT="$__d"; break; }
+    done
+    unset __d
+    if [ -n "$__CONDA_ROOT" ] || command -v conda >/dev/null 2>&1; then
+        conda() {
+            unset -f conda
+            local s="$SHELL_TYPE"; [ "$s" = "unknown" ] && s="bash"
+            # Deferred from startup: resolve a PATH-only conda now.
+            [ -z "$__CONDA_ROOT" ] && __CONDA_ROOT="$(conda info --base 2>/dev/null)"
+            local hook=""
+            [ -x "$__CONDA_ROOT/bin/conda" ] && hook="$("$__CONDA_ROOT/bin/conda" "shell.$s" hook 2>/dev/null)"
+            if [ -n "$hook" ]; then
+                eval "$hook"
+            else
+                echo "conda: failed to initialize from ${__CONDA_ROOT:-PATH}" >&2
+            fi
+            conda "$@"   # the hook's real function, or the PATH binary as fallback
+        }
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Interactive shells only below: prompt, aliases, history, completions, tool
+# keybindings. Non-interactive shells (scripts, scp, `ssh host cmd` — which
+# Debian bash points at this file) stop here and stay fast.
+# ---------------------------------------------------------------------------
+case $- in *i*) ;; *) return ;; esac
+
 # Set a cross-shell PS1 prompt
 if [ "$SHELL_TYPE" = "bash" ]; then
-    # Old prompt (with hostname): PS1="\[\e[32m\]\u@\h:\w\[\e[m\]\$ "
     PS1="\[\e[32m\]\u:\w\[\e[m\]\$ "
 elif [ "$SHELL_TYPE" = "zsh" ]; then
-    # Old prompt (with hostname): PS1="%F{green}%n@%m:%~%f$ "
     PS1="%F{green}%n:%~%f$ "
 fi
 
 # Source alias file if it exists
 if [ -f "$HOME/.aliases" ]; then
     source "$HOME/.aliases"
-fi
-
-# Conda (lazy): not loaded at startup; the first `conda` call initializes it.
-# Detects common install prefixes; override with CONDA_HOME, disable with NO_CONDA=1.
-if [ -z "$NO_CONDA" ]; then
-    for __d in "$CONDA_HOME" "$HOME/anaconda3" "$HOME/miniconda3" "$HOME/miniforge3" \
-               "$HOME/mambaforge" "$HOME/opt/anaconda3" "$HOME/opt/miniconda3" \
-               "/opt/homebrew/Caskroom/miniconda/base" "/opt/homebrew/Caskroom/miniforge/base" \
-               "/usr/local/Caskroom/miniconda/base" "/usr/local/Caskroom/miniforge/base" \
-               "/opt/conda"; do
-        [ -x "$__d/bin/conda" ] && { __CONDA_ROOT="$__d"; break; }
-    done
-    # Fall back to a conda already on PATH (e.g. Homebrew/system install)
-    [ -z "$__CONDA_ROOT" ] && command -v conda >/dev/null 2>&1 && \
-        __CONDA_ROOT="$(conda info --base 2>/dev/null)"
-    unset __d
-    if [ -n "$__CONDA_ROOT" ]; then
-        conda() {
-            unset -f conda
-            local s="$SHELL_TYPE"; [ "$s" = "unknown" ] && s="bash"
-            eval "$("$__CONDA_ROOT/bin/conda" "shell.$s" hook)"
-            conda "$@"
-        }
-    fi
 fi
 
 # History settings (persisted and de-duplicated in both shells)
@@ -66,43 +114,17 @@ elif [ "$SHELL_TYPE" = "zsh" ]; then
     autoload -U compinit && compinit -C   # -C skips the slow security check
 fi
 
-# Prepend a dir to PATH only if it exists and isn't already there
-path_prepend() {
-    case ":$PATH:" in
-        *":$1:"*) ;;
-        *) [ -d "$1" ] && PATH="$1:$PATH" ;;
-    esac
-}
-path_prepend "/usr/local/bin"
-path_prepend "$HOME/bin"
-# ~/.local/bin holds uv-installed tools (ruff, ty) and any release binaries
-# install_deps.sh drops there (nvim/zellij/yazi on Linux); keep it ahead of
-# system paths so a current nvim wins over an older apt one.
-path_prepend "$HOME/.local/bin"
-export PATH
-
-# Default editor: prefer neovim, fall back to vim (works on every box).
-if command -v nvim >/dev/null 2>&1; then
-    export EDITOR=nvim
-    export VISUAL=nvim
-else
-    export EDITOR=vim
-    export VISUAL=vim
-fi
-
-# Fix less issue in Docker
-export LESS="-R"
-
-# Faster Docker builds
-export COMPOSE_BAKE=true
-
-# App Aliases
+# VS Code from the terminal. Prefer the app bundle's real CLI (so flags like
+# --wait/--diff/-g work); `open -a` is the last resort and takes no flags.
 vscode() {
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    open -a "Visual Studio Code" "$@"
-  else
-    command code "$@"
-  fi
+    local cli="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+    if [ -x "$cli" ]; then
+        "$cli" "$@"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        open -a "Visual Studio Code" "$@"
+    else
+        command code "$@"
+    fi
 }
 alias code="vscode"
 
@@ -119,12 +141,27 @@ if command -v yazi >/dev/null 2>&1; then
     }
 fi
 
-# uv (only if installed on this machine)
-[ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
+# uv shell completion (only if installed on this machine)
 if command -v uv >/dev/null 2>&1 && [ "$SHELL_TYPE" != "unknown" ]; then
     eval "$(uv generate-shell-completion "$SHELL_TYPE")"
 fi
 
+# zoxide: smarter directory jumping. Learns dirs as you cd; jump with a
+# fragment (`z dotf`), pick interactively with `zi`. Plain cd is untouched.
+if command -v zoxide >/dev/null 2>&1 && [ "$SHELL_TYPE" != "unknown" ]; then
+    eval "$(zoxide init "$SHELL_TYPE")"
+fi
+
+# fzf keybindings + completion: Ctrl-R fuzzy history, Ctrl-T fuzzy file insert,
+# Alt-C fuzzy cd. Needs fzf >= 0.48 for --bash/--zsh (install_deps.sh installs
+# a current release where the distro's is older); an old fzf just no-ops here.
+if command -v fzf >/dev/null 2>&1 && [ "$SHELL_TYPE" != "unknown" ]; then
+    eval "$(fzf --"$SHELL_TYPE" 2>/dev/null)"
+fi
+
 # Machine-local overrides: secrets, work tools, per-host aliases.
 # Lives only in $HOME, never tracked here. Sourced last so it can override.
-[ -f "$HOME/.bashrc.local" ] && source "$HOME/.bashrc.local"
+# (if-form, not `&&`: keeps this file's exit status 0 when no override exists)
+if [ -f "$HOME/.bashrc.local" ]; then
+    source "$HOME/.bashrc.local"
+fi

@@ -59,10 +59,18 @@ return {
     keys = {
       { "<leader>y", "<cmd>Yazi<CR>", desc = "Yazi (at current file)" },
       { "<leader>Y", "<cmd>Yazi cwd<CR>", desc = "Yazi (working dir)" },
-      { "<leader>yr", "<cmd>Yazi toggle<CR>", desc = "Resume last Yazi" },
+      -- No <leader>y* two-key maps: they'd make <leader>y itself wait out
+      -- timeoutlen on every press. Resume the last session with :Yazi toggle.
     },
     opts = {
       open_for_directories = false, -- keep neo-tree for opening directories
+      -- The defaults route grep/replace/window-pick to telescope, grug-far and
+      -- snacks.picker — none installed here, so those keys would error with
+      -- "module not found". fzf-lua IS installed; use it where supported.
+      integrations = {
+        grep_in_directory = "fzf-lua",
+        grep_in_selected_files = "fzf-lua",
+      },
     },
   },
 }

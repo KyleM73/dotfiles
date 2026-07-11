@@ -51,17 +51,10 @@ let g:airline_section_c = '%t'
 let g:airline_section_z = ' %p%%  %l:%c '  " Display percentage, line, and column
 
 " Python syntax highlighting for indentation and space errors
-let python_highlight_indent_errors = 1  " Highlight indentation errors in Python
-let python_highlight_space_errors = 1   " Highlight space errors in Python
+let python_space_error_highlight = 1    " Highlight bad whitespace in Python (built-in syntax option)
 
 " Enable syntax highlighting
 syntax enable
-
-" Prettify markdown
-augroup markdown
-  au!
-  au BufNewFile,BufRead *.md,*.markdown setlocal filetype=ghmarkdown
-augroup END
 
 " Session settings
 let g:session_autosave = 'no'  " Disable automatic session saving

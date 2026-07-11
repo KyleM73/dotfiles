@@ -1,8 +1,6 @@
-# Identity and any host-specific routing live in untracked includes, so personal
-# and work details are never committed here. The setup script writes
-# ~/.gitconfig.local and can add conditional includes for a separate work identity.
-[include]
-    path = ~/.gitconfig.local
+# Identity and host-specific routing live in untracked ~/.gitconfig.local
+# (written by make_symlinks.sh), included at the BOTTOM of this file — git lets
+# the last definition win, so machine-local settings override everything here.
 
 [init]
     defaultBranch = main
@@ -12,13 +10,13 @@
 
 [push]
     default = simple
-    autoSetupRemote = true
+    autoSetupRemote = true   # needs git >= 2.37; older git ignores it
 
 [fetch]
     prune = true
 
-[core]
-    editor = vim
+# No core.editor on purpose: git falls back to $VISUAL/$EDITOR, which the shell
+# config points at nvim (or vim on machines without it).
 
 [color]
     ui = auto
@@ -34,3 +32,7 @@
     p = push
     pl = pull
     l = log --oneline --graph --decorate -20
+
+# Machine-local identity + overrides — kept last so its values win (see top).
+[include]
+    path = ~/.gitconfig.local

@@ -1,18 +1,11 @@
 -- ~/.config/nvim/init.lua
--- Neovim config — hand-written, modular, and designed to GROW.
+-- Neovim config — hand-written and modular: one file per concern under
+-- lua/plugins/, all imported by lazy.nvim below.
 --
--- Philosophy: start MINIMAL, enable features one at a time.
---   * Active now:  neo-tree (file sidebar) + gitsigns (git gutter).
---   * Everything else needed for a VSCode-like experience is already written
---     under lua/plugins/ but DISABLED via `enabled = false`. To turn a feature
---     on, open its file, flip `enabled = false` -> `true`, and restart nvim.
---     lazy.nvim installs it on next launch. Nothing to rewrite.
---
--- Suggested enable order (each is independent; this just sequences nicely):
---   1. lua/plugins/ui.lua      colorscheme + treesitter + statusline   (looks/highlighting)
---   2. lua/plugins/finder.lua  fzf-lua: Cmd-P file open + project grep  (needs fzf + ripgrep)
---   3. lua/plugins/editor.lua  which-key (keybind hints) + autopairs
---   4. lua/plugins/lsp.lua     LSP (ruff + ty for Python) + blink.cmp   => full IDE
+-- The full VS Code-like set is ENABLED. To turn any feature off, open its file
+-- and set `enabled = false` on the spec — it is then skipped entirely (not
+-- installed, no keymaps). Two specs ship disabled as easy swaps: tokyonight
+-- (alternative theme, ui.lua) and mason (LSP-server installer, lsp.lua).
 --
 -- Layout:
 --   init.lua                 this file: leader, bootstrap, load order
@@ -37,16 +30,26 @@ require("config.clipboard")
 -- Bootstrap lazy.nvim (the plugin manager) on first launch.
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
-  vim.fn.system({
+  local out = vim.fn.system({
     "git", "clone", "--filter=blob:none", "--branch=stable",
     "https://github.com/folke/lazy.nvim.git", lazypath,
   })
+  if vim.v.shell_error ~= 0 then
+    -- Without this check a failed clone (no network/proxy) surfaces later as a
+    -- cryptic "module 'lazy' not found" instead of the actual git error.
+    vim.api.nvim_echo({
+      { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
+      { out, "WarningMsg" },
+      { "\nPress any key to exit...", "MoreMsg" },
+    }, true, {})
+    vim.fn.getchar()
+    os.exit(1)
+  end
 end
 vim.opt.rtp:prepend(lazypath)
 
 -- Import every spec file in lua/plugins/. Specs with `enabled = false` are
--- skipped entirely (not installed, no keymaps), so the minimal start is just
--- whatever is enabled.
+-- skipped entirely (not installed, no keymaps).
 require("lazy").setup({
   spec = { { import = "plugins" } },
   change_detection = { notify = false }, -- don't nag when these files change

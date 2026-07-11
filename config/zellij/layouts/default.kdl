@@ -1,8 +1,9 @@
 // ~/.config/zellij/layouts/default.kdl
-// Default workspace: full-screen nvim editor with a small, PINNED floating
-// terminal in the bottom-right corner. "Pinned" keeps it visible even while the
-// editor pane is focused; toggle it away/back with Alt+f, and move/resize it in
-// pane mode (Ctrl+p, then arrows / n / +/-).
+// Default workspace: full-screen nvim editor with a small floating terminal in
+// the bottom-right corner. Alt+f shows/hides (and focuses) it, quake-style.
+// To keep it visible while you edit, pin it: Ctrl+p then i, or click its pin
+// icon — a pinned pane stays on top and ignores Alt+f until unpinned.
+// Move/resize it in pane mode (Ctrl+p, then arrows / n / +/-).
 //
 // New tabs (Ctrl+t then n) open as a plain shell — see new_tab_template below.
 // Other layouts: `zellij --layout wide` (editor left / terminal right; alias
@@ -18,16 +19,16 @@ layout {
         pane size=2 borderless=true {
             plugin location="zellij:status-bar"
         }
-        // Small pinned floating terminal, bottom-right. Percentages so it lands
-        // sensibly on any screen size (laptop, big monitor, the remote box).
+        // Anchored bottom-right. x + width > 100% on purpose: zellij floors
+        // each percentage (can leave a 1-col gap) then clamps the overshoot,
+        // so the right edge sits flush at any terminal size.
         floating_panes {
             pane {
                 name "terminal"
-                x "53%"
-                y "60%"
+                x "56%"
+                y "73%"
                 width "45%"
-                height "38%"
-                pinned true
+                height "25%"
             }
         }
     }

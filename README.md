@@ -1,7 +1,8 @@
 # dotfiles
 
-Cross-platform shell, vim, screen, and git config that works interchangeably on
-macOS and Linux, under both bash and zsh.
+Cross-platform shell + git config and a full terminal IDE (Neovim + Zellij +
+Yazi, with Ghostty) that works interchangeably on macOS and Linux, under both
+bash and zsh.
 
 ## Install
 
@@ -78,7 +79,9 @@ setup. The setup script can wire this up: it writes the work `[user]` block to
 
 Two patterns are needed because git's URL glob treats `/` as a boundary, so a
 single pattern can't match both `git@…` and `https://…` forms. Verify on any
-repo with `git config user.email`.
+repo with `git config user.email`. Needs **git ≥ 2.36** (`hasconfig` includes;
+the setup script warns if yours is older) — and `push.autoSetupRemote` in the
+tracked config needs ≥ 2.37. Older git ignores both silently.
 
 **SSH keys:** when personal and work live on different hosts, route a separate
 key per host in `~/.ssh/config` (works for clone, fetch, and push):
@@ -92,34 +95,6 @@ Host example.com
 Generate keys with `ssh-keygen -t ed25519 -f ~/.ssh/id_work` and add the public
 key to that host. (For two accounts on the *same* host, use a `Host` alias and
 rewrite the remote to match it.)
-
-## Conda
-
-Conda is **lazy-loaded**: it is not initialized at startup and `base` is never
-auto-activated. The first `conda` call initializes conda and runs your command,
-so `conda activate <env>` just works on demand. Detection covers
-anaconda/miniconda/miniforge/mambaforge, Homebrew Caskroom, and `/opt/conda`.
-
-- `CONDA_HOME=/path` — point at a non-standard conda prefix.
-- `NO_CONDA=1` — disable conda integration entirely for that shell.
-- Recommended once per machine: `conda config --set auto_activate_base false`.
-
-## Vim
-
-Plugins are managed by [vim-plug](https://github.com/junegunn/vim-plug), which
-auto-installs itself and the plugin set on first launch. Leader key is `Space`:
-
-| Mapping       | Action            |
-| ------------- | ----------------- |
-| `<Space>n`    | Toggle NERDTree   |
-| `<Space>m`    | Mirror NERDTree   |
-| `<Space>o`    | Open session      |
-| `<Space>t`    | New tab           |
-| `<Space>e`    | Enable mouse      |
-| `<Space>d`    | Disable mouse     |
-
-The old Vim config is kept as-is; Neovim (below) is the primary editor. `$EDITOR`
-prefers `nvim` and falls back to `vim` on machines without it.
 
 ## A VS Code-like terminal setup (Neovim + Zellij + Yazi)
 
@@ -153,24 +128,33 @@ package manager and does the right thing per platform:
 
 - **macOS** → Homebrew.
 - **Linux** → the native package manager (`apt`/`dnf`/`pacman`/`zypper`/`apk`,
-  with `sudo` when needed) for `fzf`, `ripgrep`, a C compiler (for treesitter),
-  and the optional preview tools.
-- **Neovim, Zellij, and Yazi on Linux** are installed from their **official
-  prebuilt releases into `~/.local/bin`** (no root, no compiler) — because
-  apt's Neovim is too old for the Python LSP (needs ≥ 0.11) and Zellij/Yazi
-  aren't packaged on Debian/Ubuntu. On Debian/Ubuntu it also symlinks `fdfind`
-  → `fd` and `batcat` → `bat` so Yazi's previews find them.
+  with `sudo` when needed) for `ripgrep`, a C compiler (for treesitter), and
+  the optional preview tools.
+- **Neovim, fzf, Zellij, Yazi, lazygit, and glow on Linux** are installed from
+  their **official prebuilt releases into `~/.local/bin`** (no root, no
+  compiler) — apt's Neovim (< 0.11, too old for the Python LSP) and fzf
+  (< 0.48, too old for the shell keybindings) lag, and the rest aren't packaged
+  on Debian/Ubuntu — where it also symlinks `fdfind` → `fd` and `batcat` →
+  `bat` so Yazi's previews find them.
 - **`ruff` + `ty`** always go through **`uv`** (cross-platform, no root); `uv`
   itself is installed if missing.
 
 `~/.local/bin` is added to your `PATH` by the shell config, so a freshly
 installed Neovim wins over an older system one.
 
-It also installs **Hack Nerd Font** (so neovim/yazi icons render) and the
-Ghostty config sets it as the font. Note: over SSH the font only matters on the
-machine running Ghostty (your Mac), not the remote box — there the Mac's Ghostty
-draws the glyphs. Ghostty also falls back to bundled Nerd Font symbols
-automatically, so icons work even before the font is installed.
+Some of the tools also hook into the shell (wired up by `bashrc`, only when the
+tool is installed):
+
+- **fzf** — `Ctrl-R` fuzzy history search, `Ctrl-T` fuzzy file insert, `Alt-C`
+  fuzzy cd.
+- **zoxide** — learns directories as you `cd`; jump with a fragment (`z dotf`),
+  or `zi` to pick interactively. Plain `cd` is untouched.
+- **glow** — read markdown in the terminal: `glow README.md` (`-p` to page).
+
+It also installs **Hack Nerd Font** (so neovim/yazi icons render; the Ghostty
+config uses it). Note: over SSH the font only matters on the machine running
+Ghostty (your Mac), not the remote box — there the Mac's Ghostty draws the
+glyphs.
 
 One thing the script can't do for you:
 
@@ -182,11 +166,10 @@ A hand-written, modular config under `config/nvim/`, managed by
 [lazy.nvim](https://github.com/folke/lazy.nvim) (auto-installs itself and all
 plugins on first launch). Leader is `Space`.
 
-**Philosophy: start minimal, grow one plugin at a time.** Every plugin lives in
-its own file under `lua/plugins/`. The full VS Code-like set is already written;
-features you haven't turned on yet carry `enabled = false`. To add one, open its
-file, flip `enabled = false` → `true`, and restart nvim — lazy installs it. No
-rewriting required.
+**Plugins are grouped one file per concern under `lua/plugins/`**, and the full
+VS Code-like set below ships enabled. To turn any feature off, open its file
+and set `enabled = false` on the spec — it's skipped entirely (not installed,
+no keymaps). Flip it back and restart nvim to re-install.
 
 | Plugin            | File                     | Role (VS Code analogue)             |
 | ----------------- | ------------------------ | ----------------------------------- |
@@ -241,9 +224,10 @@ Key mappings (leader = `Space`):
 | `<Space>qs` / `<Space>ql` | Restore session (this dir / last)     |
 
 **Python LSP uses the Astral stack** (`ruff` for lint/format, `ty` for types) —
-all Rust, no Node/pyright. Install with `uv tool install ruff ty`; both
-auto-detect the active venv / `pyproject.toml`. The config uses Neovim's native
-`vim.lsp` API (0.11+); on older nvim the LSP file warns and skips itself.
+all Rust, no Node/pyright. `install_deps.sh` installs both (manually:
+`uv tool install ruff` and `uv tool install ty`); they auto-detect the active
+venv / `pyproject.toml`. The config uses Neovim's native `vim.lsp` API (0.11+);
+on older nvim the LSP file warns and skips itself.
 
 **Clipboard over SSH:** yanks route through OSC52 when connected over SSH, so
 `yy` on a remote box lands in your local clipboard. Locally the native
@@ -257,16 +241,17 @@ clipboard is used.
 
 Terminal multiplexer / workspace, configured in `config/zellij/`. It wraps the
 editor in VS Code-like chrome: an integrated terminal pane, project tabs, a
-status bar, a theme matching the editor, and session persistence (survives SSH
-disconnects — detach with `Ctrl o` then `d`, reattach with `zellij attach`).
+status bar, and session persistence (survives SSH disconnects — detach with
+`Ctrl o` then `d`, reattach with `zellij attach`).
 
-- **Theme:** a `vscode-dark` palette (defined in `config.kdl`) matching the
-  vscode.nvim editor. Change the `theme` line to swap it.
+- **Theme:** `theme "terminal"` — zellij's chrome follows Ghostty's ANSI
+  palette (and tracks it if you re-theme Ghostty); nvim colors its own pane.
+  Set e.g. `theme "tokyo-night"` in `config.kdl` for a fixed palette instead.
 - **Layouts** (`config/zellij/layouts/`), each launchable via `zellij --layout NAME`:
 
   | Layout | Arrangement | Alias |
   | ------- | ------------------------------------------- | ----- |
-  | default | full-screen nvim + a small **pinned floating** terminal, bottom-right (`Alt+f` toggles it). New tabs (`Ctrl+t` `n`) open as a plain shell. | `zj`  |
+  | default | full-screen nvim + a small floating terminal, bottom-right (`Alt+f` shows/hides it; pin it with `Ctrl p` `i` to keep it visible while you edit). New tabs (`Ctrl+t` `n`) open as a plain shell. | `zj`  |
   | wide    | nvim editor left, terminal right            | `zjw` |
   | shell   | plain shell, no auto-nvim (quick one-offs)  | `zjs` |
 
@@ -275,8 +260,9 @@ disconnects — detach with `Ctrl o` then `d`, reattach with `zellij attach`).
   it opens in the editor; close the float to hide it. (A yazi *zellij pane* can't
   hand a file to a running nvim without fragile RPC, so it's wired in-editor.)
 - **Keys:** zellij defaults are kept (status bar shows the `Ctrl-` prefixes):
-  `Ctrl p` panes, `Ctrl t` tabs, `Ctrl s` scrollback (Enter edits it in nvim),
-  `Ctrl o` session, `Ctrl q` quit.
+  `Ctrl p` panes, `Ctrl t` tabs, `Ctrl s` scrollback (`e` edits it in nvim),
+  `Ctrl o` session, `Ctrl q` quit. One exception: `Ctrl h` is unbound so
+  nvim's split navigation (`<C-h/j/k/l>`) works inside zellij.
 - Copy uses OSC52 (works over SSH); on a local Mac set `copy_command "pbcopy"`.
 
 ## Yazi
@@ -289,9 +275,44 @@ with `.`. Richer previews depend on the optional tools listed under
 
 ## Ghostty
 
-Terminal config in `config/ghostty/config`. Sets the font to **Hack Nerd Font**
-(installed by `install_deps.sh`) so neovim/yazi icons render; Ghostty also falls
-back to bundled Nerd Font symbols automatically. Check what fonts Ghostty sees
-with `ghostty +list-fonts | grep -i nerd`. The file has commented extras (theme,
-opacity, padding) to tweak. Read on both macOS and Linux from
+Terminal config in `config/ghostty/config`. Sets the font to **Hack Nerd Font
+Mono** (installed by `install_deps.sh`) so neovim/yazi icons render; Ghostty
+also falls back to bundled Nerd Font symbols automatically, so icons work even
+before the font is installed. Check what fonts Ghostty sees with
+`ghostty +list-fonts | grep -i nerd`. It also sets `macos-option-as-alt` so the
+Alt keybinds (zellij, fzf) work on any keyboard layout. The file has commented
+extras (theme, opacity, padding) to tweak. Read on both macOS and Linux from
 `~/.config/ghostty/config`.
+
+## Conda
+
+Conda is **lazy-loaded**: it is not initialized at startup and `base` is never
+auto-activated. The first `conda` call initializes conda and runs your command,
+so `conda activate <env>` just works on demand. Detection covers
+anaconda/miniconda/miniforge/mambaforge, Homebrew Caskroom, and `/opt/conda`.
+
+- `CONDA_HOME=/path` — point at a non-standard conda prefix.
+- `NO_CONDA=1` — disable conda integration entirely for that shell.
+- Recommended once per machine: `conda config --set auto_activate_base false`.
+
+## Vim
+
+Plugins are managed by [vim-plug](https://github.com/junegunn/vim-plug), which
+auto-installs itself and the plugin set on first launch. Leader key is `Space`:
+
+| Mapping       | Action            |
+| ------------- | ----------------- |
+| `<Space>n`    | Toggle NERDTree   |
+| `<Space>m`    | Mirror NERDTree   |
+| `<Space>o`    | Open session      |
+| `<Space>t`    | New tab           |
+| `<Space>e`    | Enable mouse      |
+| `<Space>d`    | Disable mouse     |
+
+The old Vim config is kept as-is; Neovim (above) is the primary editor. `$EDITOR`
+prefers `nvim` and falls back to `vim` on machines without it — git follows suit
+(no hardcoded `core.editor`).
+
+## License
+
+MIT — see [LICENSE](LICENSE).

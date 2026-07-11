@@ -9,7 +9,7 @@
 //   Ctrl p   PANE mode:   n new pane, x close, arrows move focus, d/r split down/right
 //   Ctrl t   TAB mode:    n new tab, arrows switch, x close
 //   Ctrl n   RESIZE mode
-//   Ctrl s   SCROLL/SEARCH mode (Enter: edit scrollback in your editor)
+//   Ctrl s   SCROLL/SEARCH mode (e: edit scrollback in your editor)
 //   Ctrl o   SESSION mode: d detach (keeps it running to reattach later)
 //   Ctrl q   quit
 // Dump the full default config (all keys) any time with:
@@ -67,7 +67,9 @@ copy_clipboard "system"
 // default_shell "zsh"
 
 // Edit scrollback / open the buffer in an editor with Ctrl s then `e`.
-scrollback_editor "nvim"
+// No scrollback_editor set: zellij falls back to $EDITOR/$VISUAL, which the
+// shell config points at nvim (or vim on boxes without it).
+// scrollback_editor "/usr/bin/vim"   // uncomment to force a specific editor
 
 // Remember pane/tab layout across restarts so a crashed/closed session can be
 // resurrected (`zellij attach` lists resurrectable sessions).

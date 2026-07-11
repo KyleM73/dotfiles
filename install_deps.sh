@@ -7,12 +7,12 @@
 #                   (apt/dnf/pacman/zypper/apk) for well-packaged tools.
 #
 # Homebrew is NOT required on Linux — only used if it happens to be present.
-# Three tools are special on Linux because the distro packages are missing or
+# Some tools are special on Linux because the distro packages are missing or
 # too old, so they're installed from OFFICIAL PREBUILT RELEASES into ~/.local
 # (no root, no compiler needed):
 #     neovim  — apt ships < 0.11; the Python LSP needs the native vim.lsp API
-#     zellij  — not packaged on Debian/Ubuntu
-#     yazi    — not packaged on Debian/Ubuntu
+#     fzf     — apt ships < 0.48; the shell keybindings need `fzf --bash/--zsh`
+#     zellij, yazi, lazygit, glow — not packaged on Debian/Ubuntu
 # Python tools (ruff, ty) always go through uv (no brew, no root).
 #
 # Usage:
@@ -26,7 +26,7 @@ DRY_RUN="${DRY_RUN:-0}"
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 LOCAL_BIN="$HOME/.local/bin"
-mkdir -p "$LOCAL_BIN"
+[ "$DRY_RUN" = "1" ] || mkdir -p "$LOCAL_BIN"
 # Ensure ~/.local/bin wins on PATH for this run (where release binaries land).
 case ":$PATH:" in *":$LOCAL_BIN:"*) ;; *) PATH="$LOCAL_BIN:$PATH"; export PATH ;; esac
 
@@ -42,8 +42,13 @@ for c in brew apt-get dnf pacman zypper apk; do
 done
 PM="${PM_OVERRIDE:-$PM}"   # PM_OVERRIDE lets you test another manager's path
 SUDO=""
-if [ "$PM" != "brew" ] && [ -n "$PM" ] && [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
-    SUDO="sudo"
+PM_USABLE=1
+if [ "$PM" != "brew" ] && [ -n "$PM" ] && [ "$(id -u)" -ne 0 ]; then
+    if command -v sudo >/dev/null 2>&1; then
+        SUDO="sudo"
+    else
+        PM_USABLE=0   # non-root and no sudo binary: the PM can't work at all
+    fi
 fi
 
 echo "OS: $OS ($ARCH)   package manager: ${PM:-none}"
@@ -55,8 +60,7 @@ fi
 # Linux managers do. Prime sudo ONCE (so you're prompted a single time, not per
 # package) and, if it's unavailable non-interactively, skip those installs with
 # one clear message instead of erroring on every package. Tools that don't need
-# root (nvim/zellij/yazi releases, uv) are installed regardless.
-PM_USABLE=1
+# root (the prebuilt releases, uv) are installed regardless.
 if [ -n "$SUDO" ] && [ "$DRY_RUN" != "1" ]; then
     if sudo -n true 2>/dev/null; then
         :   # passwordless sudo already available
@@ -68,8 +72,8 @@ if [ -n "$SUDO" ] && [ "$DRY_RUN" != "1" ]; then
     fi
 fi
 if [ "$PM_USABLE" != "1" ]; then
-    echo "  ! sudo unavailable non-interactively — skipping $PM packages"
-    echo "    (re-run ./install_deps.sh in a terminal to get: fzf, ripgrep, preview tools)"
+    echo "  ! no root/sudo available — skipping $PM packages"
+    echo "    (ripgrep and the preview tools need it; the release installs still run)"
 fi
 
 [ "$PM" = "apt-get" ] && [ "$PM_USABLE" = "1" ] && run $SUDO apt-get update -qq
@@ -114,12 +118,22 @@ dl() {  # dl <url> <outfile>
 }
 
 # Map uname -m to the arch token each project uses in its release asset names.
-nvim_arch()  { case "$ARCH" in x86_64|amd64) echo x86_64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }
-rust_arch()  { case "$ARCH" in x86_64|amd64) echo x86_64 ;; aarch64|arm64) echo aarch64 ;; *) echo "" ;; esac; }
+std_arch()   { case "$ARCH" in x86_64|amd64) echo x86_64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }   # nvim, lazygit, glow
+rust_arch()  { case "$ARCH" in x86_64|amd64) echo x86_64 ;; aarch64|arm64) echo aarch64 ;; *) echo "" ;; esac; } # zellij, yazi
+go_arch()    { case "$ARCH" in x86_64|amd64) echo amd64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }    # fzf
+
+# Latest release tag of a GitHub repo WITHOUT the rate-limited API (60 req/hr
+# per IP): follow the /releases/latest redirect and read the tag off the URL.
+github_latest_tag() {  # github_latest_tag <owner/repo>  ->  e.g. "v1.2.3"
+    local tag
+    command -v curl >/dev/null 2>&1 || return 1
+    tag="$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$1/releases/latest" 2>/dev/null | sed 's#.*/##')"
+    case "$tag" in ""|latest|releases) return 1 ;; *) echo "$tag" ;; esac
+}
 
 install_nvim_release() {
     local a os url tmp dir
-    a="$(nvim_arch)"; [ -z "$a" ] && { echo "  ! neovim: unsupported arch $ARCH"; return 1; }
+    a="$(std_arch)"; [ -z "$a" ] && { echo "  ! neovim: unsupported arch $ARCH"; return 1; }
     if [ "$OS" = "Darwin" ]; then os=macos; else os=linux; fi
     url="https://github.com/neovim/neovim/releases/latest/download/nvim-${os}-${a}.tar.gz"
     echo "  → neovim     prebuilt release ($os-$a) -> ~/.local"
@@ -172,14 +186,20 @@ font_present() {  # is Hack Nerd Font already installed?
     if command -v fc-list >/dev/null 2>&1; then
         fc-list 2>/dev/null | grep -qi "Hack Nerd Font"
     else
-        ls "$HOME/Library/Fonts" /Library/Fonts 2>/dev/null | grep -qi "HackNerdFont"
+        ls "$HOME/Library/Fonts" /Library/Fonts "$HOME/.local/share/fonts" 2>/dev/null | grep -qi "HackNerdFont"
     fi
 }
 
-install_nerdfont_release() {  # download Hack Nerd Font into ~/.local/share/fonts (no root)
+install_nerdfont_release() {  # download Hack Nerd Font (no root)
     local url dest tmp
     url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip"
-    dest="$HOME/.local/share/fonts/HackNerdFont"
+    # macOS (CoreText) only scans ~/Library/Fonts; fontconfig Linux scans
+    # ~/.local/share/fonts. Installing to the wrong one = invisible font.
+    if [ "$OS" = "Darwin" ]; then
+        dest="$HOME/Library/Fonts/HackNerdFont"
+    else
+        dest="$HOME/.local/share/fonts/HackNerdFont"
+    fi
     echo "  → Hack Nerd Font -> $dest"
     if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] dl $url; unzip into $dest; fc-cache -f"; return 0; fi
     have_dl || { echo "  ! need curl or wget"; return 1; }
@@ -187,28 +207,47 @@ install_nerdfont_release() {  # download Hack Nerd Font into ~/.local/share/font
     mkdir -p "$dest"; tmp="$(mktemp -d)"
     dl "$url" "$tmp/Hack.zip" || { rm -rf "$tmp"; return 1; }
     unzip -qo "$tmp/Hack.zip" -d "$dest" || { rm -rf "$tmp"; return 1; }
-    command -v fc-cache >/dev/null 2>&1 && fc-cache -f "$HOME/.local/share/fonts" >/dev/null 2>&1
+    command -v fc-cache >/dev/null 2>&1 && fc-cache -f "$(dirname "$dest")" >/dev/null 2>&1
     rm -rf "$tmp"
 }
 
-lazygit_arch() { case "$ARCH" in x86_64|amd64) echo x86_64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }
-
-install_lazygit_release() {  # download lazygit release binary into ~/.local/bin (no root)
-    local a os ver tmp
-    a="$(lazygit_arch)"; [ -z "$a" ] && { echo "  ! lazygit: unsupported arch $ARCH"; return 1; }
+# goreleaser-style projects (lazygit, glow) name assets <bin>_<ver>_<Os>_<arch>.tar.gz
+# with the version embedded, so resolve the latest tag first (via the redirect).
+install_goreleaser_release() {  # install_goreleaser_release <owner/repo> <bin>
+    local repo="$1" bin="$2" a os tag ver tmp path
+    a="$(std_arch)"; [ -z "$a" ] && { echo "  ! $bin: unsupported arch $ARCH"; return 1; }
     if [ "$OS" = "Darwin" ]; then os="Darwin"; else os="Linux"; fi
-    echo "  → lazygit    prebuilt release ($os $a) -> $LOCAL_BIN"
-    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] resolve latest tag; dl lazygit_<ver>_${os}_${a}.tar.gz; cp lazygit -> $LOCAL_BIN"; return 0; fi
-    command -v curl >/dev/null 2>&1 || { echo "  ! lazygit: need curl"; return 1; }
-    # lazygit asset names embed the version, so resolve the latest tag first.
-    ver="$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest 2>/dev/null | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p' | head -1)"
-    [ -z "$ver" ] && { echo "  ! lazygit: could not resolve latest version"; return 1; }
+    printf '  → %-10s prebuilt release (%s %s) -> %s\n' "$bin" "$os" "$a" "$LOCAL_BIN"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] resolve latest tag; dl ${bin}_<ver>_${os}_${a}.tar.gz; cp $bin -> $LOCAL_BIN"; return 0; fi
+    tag="$(github_latest_tag "$repo")" || { echo "  ! $bin: could not resolve latest version (need curl + github.com)"; return 1; }
+    ver="${tag#v}"
     tmp="$(mktemp -d)"
-    dl "https://github.com/jesseduffield/lazygit/releases/download/v${ver}/lazygit_${ver}_${os}_${a}.tar.gz" "$tmp/lg.tar.gz" || { rm -rf "$tmp"; return 1; }
-    tar -xzf "$tmp/lg.tar.gz" -C "$tmp" lazygit 2>/dev/null || tar -xzf "$tmp/lg.tar.gz" -C "$tmp" || { rm -rf "$tmp"; return 1; }
-    install -m 0755 "$tmp/lazygit" "$LOCAL_BIN/lazygit" || { rm -rf "$tmp"; return 1; }
+    dl "https://github.com/${repo}/releases/download/${tag}/${bin}_${ver}_${os}_${a}.tar.gz" "$tmp/$bin.tar.gz" || { rm -rf "$tmp"; return 1; }
+    tar -xzf "$tmp/$bin.tar.gz" -C "$tmp" || { rm -rf "$tmp"; return 1; }
+    # Binary may be at the top level (lazygit) or in a versioned dir (glow).
+    path="$(find "$tmp" -type f -name "$bin" | head -1)"
+    [ -z "$path" ] && { rm -rf "$tmp"; return 1; }
+    install -m 0755 "$path" "$LOCAL_BIN/$bin" || { rm -rf "$tmp"; return 1; }
     rm -rf "$tmp"
-    command -v lazygit >/dev/null 2>&1
+    command -v "$bin" >/dev/null 2>&1
+}
+install_lazygit_release() { install_goreleaser_release jesseduffield/lazygit lazygit; }
+install_glow_release()    { install_goreleaser_release charmbracelet/glow    glow; }
+
+install_fzf_release() {  # download the fzf binary into ~/.local/bin (no root)
+    local a os tag ver tmp
+    a="$(go_arch)"; [ -z "$a" ] && { echo "  ! fzf: unsupported arch $ARCH"; return 1; }
+    if [ "$OS" = "Darwin" ]; then os="darwin"; else os="linux"; fi
+    printf '  → %-10s prebuilt release (%s_%s) -> %s\n' fzf "$os" "$a" "$LOCAL_BIN"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] resolve latest tag; dl fzf-<ver>-${os}_${a}.tar.gz; cp fzf -> $LOCAL_BIN"; return 0; fi
+    tag="$(github_latest_tag junegunn/fzf)" || { echo "  ! fzf: could not resolve latest version (need curl + github.com)"; return 1; }
+    ver="${tag#v}"
+    tmp="$(mktemp -d)"
+    dl "https://github.com/junegunn/fzf/releases/download/${tag}/fzf-${ver}-${os}_${a}.tar.gz" "$tmp/fzf.tar.gz" || { rm -rf "$tmp"; return 1; }
+    tar -xzf "$tmp/fzf.tar.gz" -C "$tmp" || { rm -rf "$tmp"; return 1; }
+    install -m 0755 "$tmp/fzf" "$LOCAL_BIN/fzf" || { rm -rf "$tmp"; return 1; }
+    rm -rf "$tmp"
+    command -v fzf >/dev/null 2>&1
 }
 
 ts_cli_arch() { case "$ARCH" in x86_64|amd64) echo x64 ;; aarch64|arm64) echo arm64 ;; *) echo "" ;; esac; }
@@ -270,14 +309,29 @@ echo "Editor:"
 nvim_recent=0
 if command -v nvim >/dev/null 2>&1; then
     nv="$(nvim --version 2>/dev/null | sed -n '1s/.*v\([0-9]*\.[0-9]*\).*/\1/p')"
-    case "$nv" in 0.[0-9]|0.10) nvim_recent=0 ;; *) nvim_recent=1 ;; esac
+    # "" = --version failed/unparseable: treat as broken, NOT as recent.
+    case "$nv" in ""|0.[0-9]|0.10) nvim_recent=0 ;; *) nvim_recent=1 ;; esac
 fi
 if [ "$nvim_recent" = "1" ]; then
     printf '  ✓ %-10s present (%s)\n' neovim "$nv"
 elif [ "$PM" = "brew" ]; then
-    printf '  → %-10s brew install\n' neovim; pm_install neovim
+    # `brew install` errors if an old brew nvim is present; upgrade it instead.
+    if brew list neovim >/dev/null 2>&1; then
+        printf '  → %-10s brew upgrade\n' neovim
+        run brew upgrade neovim || echo "  ! neovim: brew upgrade failed (pinned or HEAD install?)"
+    else
+        printf '  → %-10s brew install\n' neovim; pm_install neovim
+    fi
+    # An old nvim earlier on PATH (e.g. a stale ~/.local/bin symlink) can still
+    # shadow brew's fresh one — recheck instead of assuming success.
+    if [ "$DRY_RUN" != "1" ]; then
+        nv="$(nvim --version 2>/dev/null | sed -n '1s/.*v\([0-9]*\.[0-9]*\).*/\1/p')"
+        case "$nv" in
+            ""|0.[0-9]|0.10) echo "  ! nvim on PATH is still ${nv:-broken} — is an old ~/.local/bin/nvim shadowing brew's?" ;;
+        esac
+    fi
 else
-    [ -n "${nv:-}" ] && echo "  (neovim ${nv} is too old; installing a current release alongside it)"
+    [ -n "${nv:-}" ] && echo "  (neovim ${nv:-?} is too old; installing a current release alongside it)"
     install_nvim_release || echo "  ! neovim: grab a release from https://github.com/neovim/neovim/releases"
 fi
 
@@ -287,11 +341,34 @@ echo "Multiplexer + file manager:"
 smart_install zellij zellij install_zellij_release
 smart_install yazi   yazi   install_yazi_release
 
-# ---- finder + search (well packaged everywhere) ----------------------------
+# ---- finder + search --------------------------------------------------------
 echo
 echo "Finder + search:"
-ensure_pkg fzf fzf     "https://github.com/junegunn/fzf"
-ensure_pkg rg  ripgrep "https://github.com/BurntSushi/ripgrep"
+# fzf is version-gated like neovim: the shell keybindings in bashrc (Ctrl-R /
+# Ctrl-T / Alt-C) need `fzf --bash/--zsh` (>= 0.48), but apt ships 0.29-0.44.
+fzf_recent=0
+fv=""
+if command -v fzf >/dev/null 2>&1; then
+    fv="$(fzf --version 2>/dev/null | sed -n 's/^\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p')"
+    case "$fv" in
+        ""|0.[0-9]|0.[1-3][0-9]|0.4[0-7]) fzf_recent=0 ;;
+        *) fzf_recent=1 ;;
+    esac
+fi
+if [ "$fzf_recent" = "1" ]; then
+    printf '  ✓ %-10s present (%s)\n' fzf "$fv"
+elif [ "$PM" = "brew" ]; then
+    if brew list fzf >/dev/null 2>&1; then
+        printf '  → %-10s brew upgrade\n' fzf
+        run brew upgrade fzf || echo "  ! fzf: brew upgrade failed"
+    else
+        printf '  → %-10s brew install\n' fzf; pm_install fzf
+    fi
+else
+    [ -n "$fv" ] && echo "  (fzf ${fv} is too old for the shell keybindings; installing a current release)"
+    install_fzf_release || ensure_pkg fzf fzf "https://github.com/junegunn/fzf"
+fi
+ensure_pkg rg ripgrep "https://github.com/BurntSushi/ripgrep"
 
 # ---- git UI (lazygit, used by lazygit.nvim) --------------------------------
 echo
@@ -307,14 +384,27 @@ else
     echo "  ! lazygit: install from https://github.com/jesseduffield/lazygit"
 fi
 
+# ---- markdown viewer (glow: `glow README.md` renders it in the terminal) ---
+# Not packaged on Debian/Ubuntu, so smart_install falls back to the release.
+echo
+echo "Markdown viewer:"
+smart_install glow glow install_glow_release
+
 # ---- C compiler (treesitter compiles parsers on install) -------------------
 echo
 echo "Build prerequisites (treesitter parsers):"
-if command -v cc >/dev/null 2>&1 || command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1; then
+if [ "$OS" = "Darwin" ]; then
+    # /usr/bin/cc & friends are xcrun shims that exist even WITHOUT the Command
+    # Line Tools, so `command -v cc` lies here — ask xcode-select instead.
+    if xcode-select -p >/dev/null 2>&1; then
+        echo "  ✓ compiler    present"
+    else
+        echo "  ! run: xcode-select --install"
+    fi
+elif command -v cc >/dev/null 2>&1 || command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1; then
     echo "  ✓ compiler    present"
 else
     case "$PM" in
-        brew)    echo "  ! run: xcode-select --install" ;;
         apt-get) pm_install build-essential ;;
         dnf)     pm_install gcc make ;;
         pacman)  pm_install base-devel ;;
@@ -352,7 +442,7 @@ if command -v uv >/dev/null 2>&1 || [ "$DRY_RUN" = "1" ]; then
         run uv tool install "$tool"
     done
 else
-    echo "  ! uv unavailable; later run: uv tool install ruff ty"
+    echo "  ! uv unavailable; later run: uv tool install ruff && uv tool install ty"
 fi
 
 # ---- optional: richer yazi previews + navigation (best-effort) -------------
@@ -382,7 +472,8 @@ echo
 echo "Nerd Font (Hack — neovim/yazi icons):"
 if font_present; then
     echo "  ✓ Hack Nerd Font present"
-elif [ "$PM" = "brew" ]; then
+elif [ "$PM" = "brew" ] && [ "$OS" = "Darwin" ]; then
+    # casks are macOS-only; Linuxbrew falls through to the release download
     echo "  → Hack Nerd Font (brew cask)"
     pm_install --cask font-hack-nerd-font
 elif have_dl; then
@@ -394,5 +485,5 @@ fi
 echo
 echo "Done. Reminders:"
 echo "  * ~/.local/bin must be on your PATH (the shell config adds it)."
-echo "  * Ghostty is configured to use Hack Nerd Font (config/ghostty/config)."
+echo "  * Ghostty is configured to use Hack Nerd Font Mono (config/ghostty/config)."
 echo "  * First 'nvim' launch auto-installs plugins."

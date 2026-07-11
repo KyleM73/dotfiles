@@ -13,6 +13,7 @@ M.sections = {
     "",
     "<C-h/j/k/l>      move between splits",
     "<S-l> / <S-h>    next / prev buffer",
+    "<leader>bp / bd  pick a buffer / pick one to close",
     "<C-d> / <C-u>    half-page down / up (centered)",
     "J / K (visual)   move selection down / up",
     "< / > (visual)   dedent / indent",
@@ -45,7 +46,7 @@ M.sections = {
   }},
   { name = "Complete", lines = {
     "Tab / Enter      accept the suggestion",
-    "Up/Down or C-n/C-p   move the selection",
+    "Up / Down        move the selection (C-n/C-p outside zellij)",
     "<C-space>        open / toggle the menu",
     "<C-e>            hide the menu",
   }},
@@ -74,9 +75,8 @@ M.sections = {
   { name = "Files", lines = {
     "<leader>e        toggle file explorer (neo-tree)",
     "<leader>o        focus the explorer",
-    "<leader>y        open yazi here (Enter opens it in editor)",
-    "<leader>Y        open yazi at cwd",
-    "<leader>yr       resume last yazi",
+    "<leader>y        open yazi here (Enter opens file in editor)",
+    "<leader>Y        open yazi at cwd  (:Yazi toggle resumes last)",
   }},
   { name = "Session", lines = {
     "<leader>qs       restore this directory's session",
@@ -85,7 +85,9 @@ M.sections = {
     "(auto-restores when you open `nvim` with no file arguments)",
   }},
   { name = "Zellij", lines = {
-    "Alt+h/j/k/l      move between panes (editor <-> terminal)",
+    "Alt+f            show/hide the floating terminal (default layout)",
+    "Ctrl+p then i    pin it (stays visible; Alt+f then skips it)",
+    "Alt+h/j/k/l      move between tiled panes / adjacent tabs",
     "Ctrl+t  then...  1-9 / arrows switch tabs, n new tab, x close",
     "Ctrl+p  then...  n new pane, x close, d / r split down / right",
     "Ctrl+n           resize mode      Alt+= / Alt+-  resize",
@@ -99,7 +101,7 @@ M.sections = {
     ".                toggle hidden  ~ or F1  in-app help",
     "y / x / p        yank / cut / paste",
     "d / a / r        delete / create / rename",
-    "q                quit (your shell cd's to where you ended up)",
+    "q                quit (the shell `y` wrapper cd's you there)",
   }},
 }
 
@@ -146,6 +148,13 @@ local function switch(n, absolute)
 end
 
 function M.open()
+  -- Toggle: a second <leader>? closes the overlay instead of stacking a new
+  -- window on top of it (which would orphan the first one's q/<Esc> maps).
+  if state.win and vim.api.nvim_win_is_valid(state.win) then
+    vim.api.nvim_win_close(state.win, true)
+    state.win = nil
+    return
+  end
   state.buf = vim.api.nvim_create_buf(false, true)
   vim.bo[state.buf].bufhidden = "wipe"
   -- Top-right corner. Width tracks the longest line (so nothing wraps) but stays

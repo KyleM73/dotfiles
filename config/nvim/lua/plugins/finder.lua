@@ -23,6 +23,12 @@ return {
     { "<leader>fs", "<cmd>FzfLua lsp_document_symbols<CR>", desc = "[F]ind [s]ymbols (file)" },
   },
   opts = {
-    winopts = { height = 0.85, width = 0.85, preview = { default = "bat" } },
+    winopts = {
+      height = 0.85,
+      width = 0.85,
+      -- bat is a best-effort optional install; fall back to the built-in
+      -- previewer instead of erroring on every file where it's missing.
+      preview = { default = vim.fn.executable("bat") == 1 and "bat" or "builtin" },
+    },
   },
 }

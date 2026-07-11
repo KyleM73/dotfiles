@@ -15,10 +15,15 @@
 font-family = "Hack Nerd Font Mono"
 # font-size = 13
 
+# Option must act as Alt for the zellij keybinds (Alt+f floating terminal,
+# Alt+h/j/k/l focus, fzf's Alt-C). Ghostty's unset default only does this on
+# U.S. keyboard layouts, so set it explicitly. (Trade-off: Option no longer
+# types special characters like é/© — use press-and-hold instead.)
+macos-option-as-alt = true
+
 # Common extras — uncomment and tweak to taste:
 # theme = "GruvboxDark"          # `ghostty +list-themes` to browse built-ins
 # background-opacity = 0.95
-# macos-option-as-alt = true     # make the Option key send Alt (macOS)
 # confirm-close-surface = false
 # window-padding-x = 4
 # window-padding-y = 4

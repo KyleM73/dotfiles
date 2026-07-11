@@ -1,6 +1,7 @@
 # Common Aliases
-# GNU ls uses --color=auto; BSD ls (stock macOS) uses -G
-if ls --color=auto >/dev/null 2>&1; then
+# GNU ls uses --color=auto; BSD ls (stock macOS) uses -G. Probe on a fixed path
+# (-d /) so it's constant-time and immune to an unreadable/huge current dir.
+if ls --color=auto -d / >/dev/null 2>&1; then
     alias ls='ls --color=auto'
 else
     alias ls='ls -G'
@@ -29,12 +30,14 @@ alias gco='git checkout'
 alias gb='git branch'
 alias gd='git diff'
 
-# Docker Aliases
+# Docker Aliases (the -a suffix means ALL: drma/drmia wipe every container/image)
 alias dps='docker ps'
 alias dpsa='docker ps -a'
-alias drm='docker rm $(docker ps -a -q)'
+alias drm='docker rm'
+alias drma='docker rm $(docker ps -a -q)'
 alias dimg='docker images'
-alias drmi='docker rmi $(docker images -q)'
+alias drmi='docker rmi'
+alias drmia='docker rmi $(docker images -q)'
 alias dstart='docker start'
 alias dstop='docker stop'
 alias dexec='docker exec -it'
@@ -49,23 +52,27 @@ alias dclean='docker compose down --remove-orphans --volumes'
 # Conda Aliases
 alias ca='conda activate'
 alias cdd='conda deactivate'
-alias cdda='while [ -n "$CONDA_PREFIX" ]; do conda deactivate; done'
+# cdda pops the whole env stack; break if deactivate fails OR makes no progress
+# (conda no-ops with exit 0 when its stack is empty but CONDA_PREFIX leaked in).
+alias cdda='while [ -n "$CONDA_PREFIX" ]; do __cp="$CONDA_PREFIX"; conda deactivate || break; [ "$CONDA_PREFIX" = "$__cp" ] && break; done; unset __cp'
 
-# RC Aliases
-alias src='[ -n "$ZSH_VERSION" ] && source ~/.zshrc || source ~/.bashrc'
-alias shellrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
-alias bashrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
-alias zshrc='[ -n "$ZSH_VERSION" ] && vim ~/.zshrc || vim ~/.bashrc'
+# RC Aliases — edit() uses $EDITOR; vimrc/nvimrc stay editor-specific.
+# (eval, because zsh doesn't word-split a multi-word EDITOR like "code -w")
+edit() { eval "${EDITOR:-vim} \"\$@\""; }
+alias src='if [ -n "$ZSH_VERSION" ]; then source ~/.zshrc; else source ~/.bashrc; fi'
+alias shellrc='if [ -n "$ZSH_VERSION" ]; then edit ~/.zshrc; else edit ~/.bashrc; fi'
+alias bashrc='edit ~/.bashrc'
+alias zshrc='edit ~/.zshrc'
 alias vimrc='vim ~/.vimrc'
 alias nvimrc='nvim ~/.config/nvim/init.lua'
-alias screenrc='vim ~/.screenrc'
-alias gitconfig='vim ~/.gitconfig'
-alias zellijrc='${EDITOR:-vim} ~/.config/zellij/config.kdl'
-alias yazirc='${EDITOR:-vim} ~/.config/yazi/yazi.toml'
+alias screenrc='edit ~/.screenrc'
+alias gitconfig='edit ~/.gitconfig'
+alias zellijrc='edit ~/.config/zellij/config.kdl'
+alias yazirc='edit ~/.config/yazi/yazi.toml'
 
 # Neovim / multiplexer shortcuts
 alias v='nvim'
-alias zj='zellij'                  # default workspace: nvim editor + terminal below
+alias zj='zellij'                  # default layout: full-screen nvim + floating terminal (Alt+f)
 alias zjw='zellij --layout wide'   # editor left / terminal right
 alias zjs='zellij --layout shell'  # plain shell session (no auto-nvim)
 

@@ -67,6 +67,14 @@ return {
             client.server_capabilities.hoverProvider = false
           end
 
+          -- nvim 0.11 ships global grr/gri/grn/gra/grt LSP maps; ours use the
+          -- shorter gr/gd/K. Delete the builtins so `gr` doesn't stall for
+          -- timeoutlen waiting to disambiguate against grr/gri/...
+          for _, lhs in ipairs({ "grr", "gri", "grn", "gra", "grt" }) do
+            pcall(vim.keymap.del, "n", lhs)
+            pcall(vim.keymap.del, "x", lhs)
+          end
+
           local function map(lhs, rhs, desc)
             vim.keymap.set("n", lhs, rhs, { buffer = ev.buf, desc = desc })
           end
@@ -105,9 +113,10 @@ return {
     version = "*",
     event = "InsertEnter",
     opts = {
-      -- Tab AND Enter both accept the suggestion; arrows or C-n/C-p move the
-      -- selection, C-space toggles the menu, C-e hides it. (blink's "default"
-      -- preset only accepts with C-y, which is why Tab/Enter seemed to do nothing.)
+      -- Tab AND Enter both accept the suggestion; arrows move the selection
+      -- (C-n/C-p work too, but only OUTSIDE zellij — zellij's own Ctrl-n/Ctrl-p
+      -- mode keys eat them first), C-space toggles the menu, C-e hides it.
+      -- (blink's "default" preset accepts only with C-y, hence preset "none".)
       -- When the menu is closed, "fallback" lets Enter/Tab behave normally
       -- (newline / indent, and autopairs' <CR> handling).
       keymap = {

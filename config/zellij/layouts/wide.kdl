@@ -14,4 +14,15 @@ layout {
     pane size=2 borderless=true {
         plugin location="zellij:status-bar"
     }
+
+    // New tabs (Ctrl+t then n) keep the tab/status bars, as a plain shell.
+    new_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        pane
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
 }
