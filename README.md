@@ -274,12 +274,19 @@ status bar, and session persistence (survives SSH disconnects — detach with
 
 **Working over SSH (survive drops):** open **one** terminal tab and run **`zssh
 HOST`** (e.g. `zssh a5090`) — it SSHes in and attaches-or-creates a single
-persistent zellij session (`main`). Keep your editor, a `claude` session, and a
-shell as **zellij tabs** (`Alt+t` / `Alt+1-9` / `Alt+w`): it all lives in one
-connection, so an SSH drop costs one reconnect — rerun `zssh HOST` and the whole
-workspace comes back. (One session per *terminal* tab instead means a separate
-SSH connection to reattach for each.) `zssh HOST work2` opens a second workspace
-on the same host.
+persistent zellij session (`main`). Keep your work as **zellij tabs** (`Alt+t` /
+`Alt+1-9` / `Alt+w`), all in one connection, so an SSH drop costs one reconnect —
+rerun `zssh HOST` and the whole workspace comes back. (One session per *terminal*
+tab instead means a separate SSH connection to reattach for each.) `zssh HOST
+work2` opens a second workspace on the same host.
+
+**Managing sessions:** `zjls` lists them (running and — because
+`session_serialization` is on — exited/resurrectable). `zja NAME` attaches
+(`-c` creates); `zjk`/`zjka` kill one/all (they stay resurrectable), `zjd`/`zjda`
+delete one/all for good. Name a new one with `zj -s NAME` (or `zssh HOST NAME`);
+`Ctrl+o` then `w` opens an interactive manager to switch/rename/kill. (Aliases
+are interactive-only; for a remote peek without attaching, use the binary:
+`ssh a5090 zellij ls`.)
 
 ## Yazi
 

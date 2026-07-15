@@ -76,10 +76,18 @@ alias zj='zellij'                  # default layout: full-screen nvim + floating
 alias zjw='zellij --layout wide'   # editor left / terminal right
 alias zjs='zellij --layout shell'  # plain shell session (no auto-nvim)
 
+# Session management. With session_serialization on, `kill` leaves a session
+# resurrectable (still listed); `delete` removes it for good.
+alias zjls='zellij list-sessions'      # running + resurrectable sessions
+alias zja='zellij attach'              # zja NAME  (add -c to create)
+alias zjk='zellij kill-session'        # stop one (stays resurrectable)
+alias zjka='zellij kill-all-sessions'
+alias zjd='zellij delete-session'      # remove one for good (also clears a killed session)
+alias zjda='zellij delete-all-sessions'
+
 # zssh HOST [SESSION]: SSH in and attach-or-create ONE persistent zellij session
-# (default "main"), so nvim + a claude session + a shell live as tabs in a single
-# connection — after a drop, `zssh HOST` brings the whole workspace back. -t forces
-# a TTY. Pass a second arg for another workspace on the same host.
+# (default "main") so your work survives drops — reconnect with the same command.
+# -t forces a TTY; a second arg names a separate workspace on the same host.
 zssh() {
     [ -z "$1" ] && { echo "usage: zssh HOST [SESSION]" >&2; return 2; }
     ssh -t "$1" "zellij attach -c '${2:-main}'"

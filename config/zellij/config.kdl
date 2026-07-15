@@ -8,8 +8,7 @@
 // bar, which shows the Ctrl- prefixes. The essentials:
 //   Ctrl p   PANE mode:   n new pane, x close, arrows move focus, d/r split down/right
 //   Ctrl t   TAB mode:    n new tab, arrows switch, x close
-//   Alt t / Alt 1-9 / Alt w   tabs with NO prefix (custom): new / go to N / close.
-//                             See the keybinds block below.
+//   Alt t / Alt 1-9 / Alt w   tabs, no prefix (custom): new / go to N / close
 //   Ctrl n   RESIZE mode
 //   Ctrl s   SCROLL/SEARCH mode (e: edit scrollback in your editor)
 //   Ctrl o   SESSION mode: d detach (keeps it running to reattach later)
@@ -90,14 +89,12 @@ keybinds {
         unbind "Ctrl h"
     }
 
-    // Prefix-free tabs, matching the macOS new/switch/close-tab convention
-    // (Cmd+T / Cmd+1-9 / Cmd+W in Terminal, Ghostty, browsers). Cmd can't reach a
-    // remote box, so these use Alt — Ghostty sends it via macos-option-as-alt.
-    // `shared_except "locked"` fires them in every mode but locked (Ctrl+g, the
-    // escape hatch if a pane app needs raw Alt+1). No clash with zellij's Alt binds
-    // (Alt+f float, Alt+n pane, Alt+h/j/k/l focus, Alt+i/o move tab). This backs a
-    // single durable SSH session (see the `zssh` alias): keep nvim, a claude
-    // session, and a shell as tabs so a drop is one reconnect, not one per tab.
+    // Prefix-free tabs matching the macOS new/switch/close-tab convention
+    // (Cmd+T / Cmd+1-9 / Cmd+W). Cmd can't cross SSH, so these use Alt (sent via
+    // macos-option-as-alt); `shared_except "locked"` fires them everywhere but
+    // locked mode (Ctrl+g), the raw-key escape hatch. No clash with the default
+    // Alt binds (f float, n pane, h/j/k/l focus, i/o move tab). This keeps one
+    // durable session over SSH — a drop is a single reconnect (see `zssh`).
     shared_except "locked" {
         bind "Alt t" { NewTab; }            // new tab (flat shell, per layout's new_tab_template)
         bind "Alt w" { CloseTab; }          // close current tab (no confirmation)
