@@ -40,11 +40,11 @@ themes {
     }
 }
 
-// Open the VS Code-like workspace (nvim editor + terminal) for every session.
-// Layouts live in ~/.config/zellij/layouts/. Alternatives:
-//   zellij --layout wide   (editor left / terminal right;  alias: zjw)
-//   zellij --layout shell  (plain shell, no nvim;          alias: zjs)
-default_layout "default"
+// Bare `zj` opens a single terminal pane (the "shell" layout). Layouts live in
+// ~/.config/zellij/layouts/. Alternatives:
+//   zellij --layout nvim   (full-screen nvim + floating terminal;  alias: zjv)
+//   zellij --layout wide   (editor left / terminal right;          alias: zjw)
+default_layout "shell"
 
 // Mouse support: click panes/tabs, select to copy, scroll. Works locally and
 // over SSH in ghostty.

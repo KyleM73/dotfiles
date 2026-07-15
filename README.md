@@ -254,9 +254,9 @@ status bar, and session persistence (survives SSH disconnects — detach with
 
   | Layout | Arrangement | Alias |
   | ------- | ------------------------------------------- | ----- |
-  | default | full-screen nvim + a small floating terminal, bottom-right (`Alt+f` shows/hides it; pin it with `Ctrl p` `i` to keep it visible while you edit). New tabs (`Alt+t`) open as a plain shell. | `zj`  |
+  | shell   | a single terminal pane — **the default**, so bare `zj` opens it; `Alt+t` adds more tabs | `zj`  |
+  | nvim    | full-screen nvim + a small floating terminal, bottom-right (`Alt+f` shows/hides it; pin it with `Ctrl p` `i` to keep it visible while you edit) | `zjv` |
   | wide    | nvim editor left, terminal right            | `zjw` |
-  | shell   | plain shell, no auto-nvim (quick one-offs)  | `zjs` |
 
   Open one in a new tab from a running session: `zellij action new-tab --layout wide`.
 - **File manager:** browse with yazi *inside* nvim (`<Space>y`) — pick a file and
@@ -280,13 +280,15 @@ rerun `zssh HOST` and the whole workspace comes back. (One session per *terminal
 tab instead means a separate SSH connection to reattach for each.) `zssh HOST
 work2` opens a second workspace on the same host.
 
-**Managing sessions:** `zjls` lists them (running and — because
-`session_serialization` is on — exited/resurrectable). `zja NAME` attaches
-(`-c` creates); `zjk`/`zjka` kill one/all (they stay resurrectable), `zjd`/`zjda`
-delete one/all for good. Name a new one with `zj -s NAME` (or `zssh HOST NAME`);
-`Ctrl+o` then `w` opens an interactive manager to switch/rename/kill. (Aliases
-are interactive-only; for a remote peek without attaching, use the binary:
-`ssh a5090 zellij ls`.)
+**Managing sessions:** `zj` / `zjv` / `zjw` name the session after the current
+directory's basename and attach-or-create it, so re-running in a project
+reattaches its session instead of spawning a new random-named one. `zjls` lists
+sessions (running and — because `session_serialization` is on —
+exited/resurrectable); `zja NAME` attaches (`-c` creates); `zjk`/`zjka` kill
+one/all (they stay resurrectable), `zjd`/`zjda` delete one/all for good. For a
+custom-named session use `zellij -s NAME`; `Ctrl+o` then `w` opens an
+interactive manager to switch/rename/kill. (Aliases are interactive-only; for a
+remote peek without attaching, use the binary: `ssh a5090 zellij ls`.)
 
 ## Yazi
 

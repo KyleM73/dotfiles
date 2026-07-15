@@ -1,6 +1,6 @@
 // ~/.config/zellij/layouts/shell.kdl
-// Plain shell session — no auto-nvim, for quick one-off terminals.
-// Launch with:  zellij --layout shell   (alias: zjs)
+// A single terminal pane (plus tab/status bars), no auto-nvim. This is the
+// default layout, so bare `zj` opens it; add tabs with Alt+t.
 layout {
     pane size=1 borderless=true {
         plugin location="zellij:tab-bar"

@@ -100,8 +100,8 @@ M.sections = {
     "$ zja NAME       attach     (zja -c NAME creates it)",
     "$ zjk / zjka     kill one / all (stay resurrectable)",
     "$ zjd / zjda     delete one / all (gone for good)",
-    "$ zj / zjw / zjs new session (default / wide / plain shell)",
-    "$ zj -s NAME     name it, or  $ zssh HOST NAME  over SSH",
+    "$ zj / zjv / zjw open this dir's session: term / nvim / wide",
+    "$ zellij -s NAME custom-named session   (zssh HOST: remote)",
   }},
   { name = "Yazi", lines = {
     "h/j/k/l          navigate       Enter  open",

@@ -72,9 +72,24 @@ alias yazirc='edit ~/.config/yazi/yazi.toml'
 
 # Neovim / multiplexer shortcuts
 alias v='nvim'
-alias zj='zellij'                  # default layout: full-screen nvim + floating terminal (Alt+f)
-alias zjw='zellij --layout wide'   # editor left / terminal right
-alias zjs='zellij --layout shell'  # plain shell session (no auto-nvim)
+# zj [LAYOUT]: attach to (or create) a zellij session named after the current
+# directory's basename, so re-running in a project reattaches its session instead
+# of spawning a new random-named one. LAYOUT applies only on create; zjv/zjw pass
+# it. zj = single terminal (default), zjv = nvim + float, zjw = editor | terminal.
+# For a custom-named session use `zellij -s NAME` directly.
+zj() {
+    local name="${PWD##*/}"
+    name="${name//[^A-Za-z0-9_-]/-}"; [ -z "$name" ] && name="zj"
+    if zellij list-sessions -ns 2>/dev/null | grep -qx "$name"; then
+        zellij attach "$name"
+    elif [ -n "$1" ]; then
+        zellij --session "$name" --layout "$1"
+    else
+        zellij --session "$name"
+    fi
+}
+alias zjv='zj nvim'   # full-screen nvim + floating terminal (Alt+f)
+alias zjw='zj wide'   # editor left / terminal right
 
 # Session management. With session_serialization on, `kill` leaves a session
 # resurrectable (still listed); `delete` removes it for good.
