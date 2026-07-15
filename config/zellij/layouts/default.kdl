@@ -5,7 +5,8 @@
 // icon — a pinned pane stays on top and ignores Alt+f until unpinned.
 // Move/resize it in pane mode (Ctrl+p, then arrows / n / +/-).
 //
-// New tabs (Ctrl+t then n) open as a plain shell — see new_tab_template below.
+// New tabs (Alt+t, or Ctrl+t then n) open as a plain shell — see new_tab_template
+// below. Switch tabs with Alt+1-9, close with Alt+w (custom keys in config.kdl).
 // Other layouts: `zellij --layout wide` (editor left / terminal right; alias
 // zjw) and `zellij --layout shell` (plain shell session; alias zjs).
 layout {

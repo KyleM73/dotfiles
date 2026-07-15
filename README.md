@@ -254,7 +254,7 @@ status bar, and session persistence (survives SSH disconnects — detach with
 
   | Layout | Arrangement | Alias |
   | ------- | ------------------------------------------- | ----- |
-  | default | full-screen nvim + a small floating terminal, bottom-right (`Alt+f` shows/hides it; pin it with `Ctrl p` `i` to keep it visible while you edit). New tabs (`Ctrl+t` `n`) open as a plain shell. | `zj`  |
+  | default | full-screen nvim + a small floating terminal, bottom-right (`Alt+f` shows/hides it; pin it with `Ctrl p` `i` to keep it visible while you edit). New tabs (`Alt+t`) open as a plain shell. | `zj`  |
   | wide    | nvim editor left, terminal right            | `zjw` |
   | shell   | plain shell, no auto-nvim (quick one-offs)  | `zjs` |
 
@@ -266,7 +266,20 @@ status bar, and session persistence (survives SSH disconnects — detach with
   `Ctrl p` panes, `Ctrl t` tabs, `Ctrl s` scrollback (`e` edits it in nvim),
   `Ctrl o` session, `Ctrl q` quit. One exception: `Ctrl h` is unbound so
   nvim's split navigation (`<C-h/j/k/l>`) works inside zellij.
+- **Prefix-free tabs:** `Alt+t` new, `Alt+1`-`Alt+9` go to tab N, `Alt+w` close
+  — the macOS new/switch/close-tab convention (`Cmd+T` / `Cmd+1-9` / `Cmd+W`),
+  on `Alt` since `Cmd` can't reach a remote box. Reorder tabs with `Alt+i` /
+  `Alt+o`.
 - Copy uses OSC52 (works over SSH); on a local Mac set `copy_command "pbcopy"`.
+
+**Working over SSH (survive drops):** open **one** terminal tab and run **`zssh
+HOST`** (e.g. `zssh a5090`) — it SSHes in and attaches-or-creates a single
+persistent zellij session (`main`). Keep your editor, a `claude` session, and a
+shell as **zellij tabs** (`Alt+t` / `Alt+1-9` / `Alt+w`): it all lives in one
+connection, so an SSH drop costs one reconnect — rerun `zssh HOST` and the whole
+workspace comes back. (One session per *terminal* tab instead means a separate
+SSH connection to reattach for each.) `zssh HOST work2` opens a second workspace
+on the same host.
 
 ## Yazi
 

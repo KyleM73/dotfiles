@@ -76,5 +76,14 @@ alias zj='zellij'                  # default layout: full-screen nvim + floating
 alias zjw='zellij --layout wide'   # editor left / terminal right
 alias zjs='zellij --layout shell'  # plain shell session (no auto-nvim)
 
+# zssh HOST [SESSION]: SSH in and attach-or-create ONE persistent zellij session
+# (default "main"), so nvim + a claude session + a shell live as tabs in a single
+# connection — after a drop, `zssh HOST` brings the whole workspace back. -t forces
+# a TTY. Pass a second arg for another workspace on the same host.
+zssh() {
+    [ -z "$1" ] && { echo "usage: zssh HOST [SESSION]" >&2; return 2; }
+    ssh -t "$1" "zellij attach -c '${2:-main}'"
+}
+
 # venv
 alias venv="source .venv/bin/activate"
