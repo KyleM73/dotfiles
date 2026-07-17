@@ -10,7 +10,7 @@
 -- Layout:
 --   init.lua                 this file: leader, bootstrap, load order
 --   lua/config/options.lua   editor options (numbers, indent, search, ...)
---   lua/config/keymaps.lua   keymaps that aren't tied to a plugin
+--   lua/config/keymaps.lua   keymaps & commands not tied to a plugin
 --   lua/config/clipboard.lua OSC52 clipboard (yank over SSH -> local clipboard)
 --   lua/plugins/*.lua        one file per concern; lazy.nvim imports them all
 

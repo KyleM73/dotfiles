@@ -1,5 +1,5 @@
--- Keymaps that don't belong to a specific plugin. (Plugin keymaps live next to
--- their plugin in lua/plugins/.) Leader is <Space>.
+-- Keymaps and commands that don't belong to a specific plugin. (Plugin keymaps
+-- live next to their plugin in lua/plugins/.) Leader is <Space>.
 local map = vim.keymap.set
 
 -- Clear search highlight on <Esc>.
@@ -34,3 +34,26 @@ map("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move selection up" })
 -- Stay in visual mode after shifting indentation.
 map("v", "<", "<gv")
 map("v", ">", ">gv")
+
+-- :Ea[!] ("edit all") — like :e, but for every open file buffer (e.g. after a git
+-- pull). Modified buffers are skipped and counted; ! discards their changes.
+-- Special buffers (terminals, neo-tree, ...) are left alone.
+vim.api.nvim_create_user_command("Ea", function(opts)
+  local ok, skipped, failed = 0, 0, 0
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buflisted
+      and vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= "" then
+      if vim.bo[buf].modified and not opts.bang then
+        skipped = skipped + 1
+      elseif pcall(vim.api.nvim_buf_call, buf, function() vim.cmd(opts.bang and "edit!" or "edit") end) then
+        ok = ok + 1
+      else
+        failed = failed + 1
+      end
+    end
+  end
+  local msg = ("Reloaded %d buffer%s"):format(ok, ok == 1 and "" or "s")
+  if skipped > 0 then msg = msg .. (", %d skipped (unsaved — :Ea! to force)"):format(skipped) end
+  if failed > 0 then msg = msg .. (", %d failed"):format(failed) end
+  vim.notify(msg, (skipped + failed > 0) and vim.log.levels.WARN or vim.log.levels.INFO)
+end, { bang = true, desc = "Reload all open file buffers from disk (! discards unsaved changes)" })

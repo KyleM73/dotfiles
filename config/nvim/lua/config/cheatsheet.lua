@@ -21,6 +21,7 @@ M.sections = {
     "<leader>tw       toggle line wrap",
     ":w  :q  :qa      save / close window / quit all",
     ":bd              close (delete) the current buffer",
+    ":Ea[!]           reload all open buffers from disk (! discards)",
   }},
   { name = "Find", lines = {
     "<leader><leader>  find files (like Cmd-P)",
