@@ -396,6 +396,15 @@ echo "Multiplexer + file manager:"
 smart_install zellij zellij install_zellij_release
 smart_install yazi   yazi   install_yazi_release
 
+# ---- resilient remote shell (mosh) -----------------------------------------
+# Pairs with zellij for remote work over spotty/roaming wifi: local echo makes
+# typing feel instant and the session survives drops (see the `mssh` alias).
+# Well-packaged everywhere; needs root on Linux + inbound UDP 60000-61000 on the
+# server. Install on both your laptop and the boxes you connect to.
+echo
+echo "Remote shell (mosh — zellij over spotty wifi):"
+ensure_pkg mosh mosh "https://mosh.org — needed for the mssh helper"
+
 # ---- finder + search --------------------------------------------------------
 echo
 echo "Finder + search:"

@@ -35,7 +35,7 @@ That single command is the whole setup. `make_symlinks.sh`:
   and writes them to `~/.gitconfig.local` — so identity is set automatically and
   never committed. Skipped if `~/.gitconfig.local` already exists.
 - Offers to install the CLI tools the editor setup uses (Neovim, Zellij, Yazi,
-  fzf, ripgrep, ruff, ty, …) via [`install_deps.sh`](#installing-the-tools).
+  fzf, ripgrep, mosh, ruff, ty, …) via [`install_deps.sh`](#installing-the-tools).
   Skip with `SKIP_DEPS=1 ./make_symlinks.sh`.
 
 `bashrc` is the single cross-shell init file, sourced by both bash and zsh.
@@ -283,6 +283,18 @@ SSH connection to reattach for each.) Pass a **directory** to pick a specific
 workspace: `zssh a5090 projects/robot` fuzzy-matches your sessions and attaches
 (an `fzf` picker opens if several match); with no match it `cd`s into that dir on
 the host and starts a session there — same per-directory naming as local `z`.
+
+**On spotty / roaming wifi**, two things help:
+- **Keep-alives + connection reuse** in `~/.ssh/config` (not tracked here — add
+  once per client, under a `Host *` block): `ServerAliveInterval 20` /
+  `ServerAliveCountMax 3` keep idle links up through blips and detect a dead one
+  in ~1min (no hang); `ControlMaster auto` / `ControlPersist 10m` reuse one
+  connection so reconnects are instant.
+- **`mssh HOST`** — `zssh` over **mosh**: identical session logic, but mosh's UDP
+  transport gives instant local echo (typing stays snappy at high latency) and
+  survives drops / IP changes, reconnecting itself when wifi returns. Needs `mosh`
+  on both ends (`install_deps.sh`) and inbound UDP 60000-61000 on the box. Caveat:
+  mosh doesn't forward your ssh-agent, so use `zssh` for `git push` from the remote.
 
 **Managing sessions:** `z` / `zv` / `zw` attach-or-create a session named after a
 directory's basename — the current dir, or a `z <dir>` argument that Tab-completes

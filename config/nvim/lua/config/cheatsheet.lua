@@ -103,6 +103,7 @@ M.sections = {
     "$ zd / zda       delete one / all (gone for good)",
     "$ z / zv / zw    cwd or <dir> session (Tab): term/nvim/wide",
     "$ zssh HOST      remote: reopen recent, or [dir] (fuzzy/new)",
+    "$ mssh HOST      like zssh, over mosh (spotty/roaming wifi)",
   }},
   { name = "Yazi", lines = {
     "h/j/k/l          navigate       Enter  open",

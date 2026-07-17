@@ -111,29 +111,37 @@ zd() { zellij delete-session "$@"; }    # zd NAME   (gone for good)
 # Single-quote a value for safe embedding in a remote ssh command string.
 _shq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 
-# zssh HOST [DIR|query]: SSH in and reconnect to a persistent zellij session
-# (named by directory basename, like `z`). No query -> reopen HOST's most recent
-# session (or create one in your login dir). With a query, fuzzy-match HOST's
-# sessions and attach (fzf picker if several); with no match, cd into it as a
-# directory (relative to remote home, or absolute) and start a session there.
-zssh() {
-    local host="$1" query="$2" names qbase target rc fzrc
-    [ -z "$host" ] && { echo "usage: zssh HOST [DIR|query]" >&2; return 2; }
+# zssh / mssh HOST [DIR|query]: connect and reattach a persistent zellij session
+# on HOST, named by directory basename (like `z`). No query reopens HOST's most
+# recent session (or creates one in your login dir); a query fuzzy-matches HOST's
+# sessions (fzf picker if several), else cd's into it as a dir and starts one.
+# zssh uses SSH; mssh uses mosh — resilient UDP + local echo for spotty/roaming
+# wifi (needs mosh + UDP 60000-61000 on HOST; no in-session agent forwarding).
+_zconnect() {   # _zconnect TRANSPORT HOST REMOTE_SH — run REMOTE_SH interactively
+    case "$1" in
+        mosh) mosh "$2" -- sh -c "$3" ;;
+        *)    ssh -t "$2" "$3" ;;
+    esac
+}
+_zssh_impl() {  # _zssh_impl TRANSPORT HOST [DIR|query]
+    local xport="$1" host="$2" query="$3" name names qbase target rc fzrc
+    name=zssh; [ "$xport" = mosh ] && name=mssh
+    [ -z "$host" ] && { echo "usage: $name HOST [DIR|query]" >&2; return 2; }
 
     if [ -z "$query" ]; then
-        # Reopen the most recent session (newest = last line); else create one
-        # in the login dir, named after it.
-        ssh -t "$host" '
+        # Reopen the most recent session (newest = last line); else create one in
+        # the login dir. (list-fetch uses SSH even for mssh — a quick one-shot.)
+        _zconnect "$xport" "$host" '
             s=$(zellij list-sessions -ns 2>/dev/null | tail -n1)
             [ -n "$s" ] && exec zellij attach "$s"
             exec zellij -s "$(basename "$PWD")"'
-        rc=$?  # ssh returns 255 only on its own connection failure
-        [ "$rc" -eq 255 ] && echo "zssh: cannot reach '$host' (host unreachable)" >&2
+        rc=$?
+        [ "$rc" -eq 255 ] && echo "$name: cannot reach '$host' (host unreachable)" >&2
         return "$rc"
     fi
 
     names="$(ssh "$host" 'zellij list-sessions -ns 2>/dev/null')"; rc=$?
-    [ "$rc" -eq 255 ] && { echo "zssh: cannot reach '$host' (host unreachable)" >&2; return 1; }
+    [ "$rc" -eq 255 ] && { echo "$name: cannot reach '$host' (host unreachable)" >&2; return 1; }
     qbase="$(basename -- "$query")"
 
     if printf '%s\n' "$names" | grep -Fqx -- "$qbase"; then
@@ -147,12 +155,14 @@ zssh() {
     fi
 
     if [ -n "$target" ]; then
-        ssh -t "$host" "exec zellij attach $(_shq "$target")"
+        _zconnect "$xport" "$host" "exec zellij attach $(_shq "$target")"
     else
         # No session matched: the query is a directory — start zellij there.
-        ssh -t "$host" "cd -- $(_shq "$query") && exec zellij -s $(_shq "$qbase")"
+        _zconnect "$xport" "$host" "cd -- $(_shq "$query") && exec zellij -s $(_shq "$qbase")"
     fi
 }
+zssh() { _zssh_impl ssh "$@"; }
+mssh() { command -v mosh >/dev/null 2>&1 || { echo "mssh: mosh not installed (run install_deps.sh)" >&2; return 1; }; _zssh_impl mosh "$@"; }
 
 # venv
 alias venv="source .venv/bin/activate"
