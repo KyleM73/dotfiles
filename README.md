@@ -150,8 +150,9 @@ tool is installed):
 
 - **fzf** — `Ctrl-R` fuzzy history search, `Ctrl-T` fuzzy file insert, `Alt-C`
   fuzzy cd.
-- **zoxide** — learns directories as you `cd`; jump with a fragment (`z dotf`),
-  or `zi` to pick interactively. Plain `cd` is untouched.
+- **zoxide** — learns directories as you `cd`; jump with a fragment (`zz dotf`),
+  or `zzi` to pick interactively (moved off `z`/`zi` so bare `z` runs zellij).
+  Plain `cd` is untouched.
 - **glow** — read markdown in the terminal: `glow README.md` (`-p` to page).
 
 It also installs **Hack Nerd Font** (so neovim/yazi icons render; the Ghostty
@@ -254,9 +255,9 @@ status bar, and session persistence (survives SSH disconnects — detach with
 
   | Layout | Arrangement | Alias |
   | ------- | ------------------------------------------- | ----- |
-  | shell   | a single terminal pane — **the default**, so bare `zj` opens it; `Alt+t` adds more tabs | `zj`  |
-  | nvim    | full-screen nvim + a small floating terminal, bottom-right (`Alt+f` shows/hides it; pin it with `Ctrl p` `i` to keep it visible while you edit) | `zjv` |
-  | wide    | nvim editor left, terminal right            | `zjw` |
+  | shell   | a single terminal pane — **the default**, so bare `z` opens it; `Alt+t` adds more tabs | `z`  |
+  | nvim    | full-screen nvim + a small floating terminal, bottom-right (`Alt+f` shows/hides it; pin it with `Ctrl p` `i` to keep it visible while you edit) | `zv` |
+  | wide    | nvim editor left, terminal right            | `zw` |
 
   Open one in a new tab from a running session: `zellij action new-tab --layout wide`.
 - **File manager:** browse with yazi *inside* nvim (`<Space>y`) — pick a file and
@@ -273,19 +274,22 @@ status bar, and session persistence (survives SSH disconnects — detach with
 - Copy uses OSC52 (works over SSH); on a local Mac set `copy_command "pbcopy"`.
 
 **Working over SSH (survive drops):** open **one** terminal tab and run **`zssh
-HOST`** (e.g. `zssh a5090`) — it SSHes in and attaches-or-creates a single
-persistent zellij session (`main`). Keep your work as **zellij tabs** (`Alt+t` /
-`Alt+1-9` / `Alt+w`), all in one connection, so an SSH drop costs one reconnect —
-rerun `zssh HOST` and the whole workspace comes back. (One session per *terminal*
-tab instead means a separate SSH connection to reattach for each.) `zssh HOST
-work2` opens a second workspace on the same host.
+HOST`** (e.g. `zssh a5090`) — it SSHes in and reopens the **most recent** zellij
+session on that host (creating one in your login dir if there are none). Keep
+your work as **zellij tabs** (`Alt+t` / `Alt+1-9` / `Alt+w`), all in one
+connection, so an SSH drop costs one reconnect — rerun `zssh HOST` and the whole
+workspace comes back. (One session per *terminal* tab instead means a separate
+SSH connection to reattach for each.) Pass a **directory** to pick a specific
+workspace: `zssh a5090 projects/robot` fuzzy-matches your sessions and attaches
+(an `fzf` picker opens if several match); with no match it `cd`s into that dir on
+the host and starts a session there — same per-directory naming as local `z`.
 
-**Managing sessions:** `zj` / `zjv` / `zjw` name the session after the current
+**Managing sessions:** `z` / `zv` / `zw` name the session after the current
 directory's basename and attach-or-create it, so re-running in a project
-reattaches its session instead of spawning a new random-named one. `zjls` lists
+reattaches its session instead of spawning a new random-named one. `zls` lists
 sessions (running and — because `session_serialization` is on —
-exited/resurrectable); `zja NAME` attaches (`-c` creates); `zjk`/`zjka` kill
-one/all (they stay resurrectable), `zjd`/`zjda` delete one/all for good. For a
+exited/resurrectable); `za NAME` attaches (`-c` creates); `zk`/`zka` kill
+one/all (they stay resurrectable), `zd`/`zda` delete one/all for good. For a
 custom-named session use `zellij -s NAME`; `Ctrl+o` then `w` opens an
 interactive manager to switch/rename/kill. (Aliases are interactive-only; for a
 remote peek without attaching, use the binary: `ssh a5090 zellij ls`.)

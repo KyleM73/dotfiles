@@ -72,14 +72,15 @@ alias yazirc='edit ~/.config/yazi/yazi.toml'
 
 # Neovim / multiplexer shortcuts
 alias v='nvim'
-# zj [LAYOUT]: attach to (or create) a zellij session named after the current
+# z [LAYOUT]: attach to (or create) a zellij session named after the current
 # directory's basename, so re-running in a project reattaches its session instead
-# of spawning a new random-named one. LAYOUT applies only on create; zjv/zjw pass
-# it. zj = single terminal (default), zjv = nvim + float, zjw = editor | terminal.
-# For a custom-named session use `zellij -s NAME` directly.
-zj() {
+# of spawning a new random-named one. LAYOUT applies only on create; zv/zw pass
+# it. z = single terminal (default), zv = nvim + float, zw = editor | terminal.
+# (Bare `z` is zellij; zoxide's jump lives on `zz`/`zzi` — see bashrc.) For a
+# custom-named session use `zellij -s NAME` directly.
+z() {
     local name="${PWD##*/}"
-    name="${name//[^A-Za-z0-9_-]/-}"; [ -z "$name" ] && name="zj"
+    name="${name//[^A-Za-z0-9_-]/-}"; [ -z "$name" ] && name="z"
     if zellij list-sessions -ns 2>/dev/null | grep -qx "$name"; then
         zellij attach "$name"
     elif [ -n "$1" ]; then
@@ -88,24 +89,64 @@ zj() {
         zellij --session "$name"
     fi
 }
-alias zjv='zj nvim'   # full-screen nvim + floating terminal (Alt+f)
-alias zjw='zj wide'   # editor left / terminal right
+alias zv='z nvim'   # full-screen nvim + floating terminal (Alt+f)
+alias zw='z wide'   # editor left / terminal right
 
 # Session management. With session_serialization on, `kill` leaves a session
-# resurrectable (still listed); `delete` removes it for good.
-alias zjls='zellij list-sessions'      # running + resurrectable sessions
-alias zja='zellij attach'              # zja NAME  (add -c to create)
-alias zjk='zellij kill-session'        # stop one (stays resurrectable)
-alias zjka='zellij kill-all-sessions'
-alias zjd='zellij delete-session'      # remove one for good (also clears a killed session)
-alias zjda='zellij delete-all-sessions'
+# resurrectable (still listed); `delete` removes it for good. za/zk/zd are
+# functions (not aliases) so zsh honors their session-name completion (see bashrc).
+alias zls='zellij list-sessions'        # running + resurrectable sessions
+alias zka='zellij kill-all-sessions'
+alias zda='zellij delete-all-sessions'
+za() { zellij attach "$@"; }            # za NAME   (add -c to create)
+zk() { zellij kill-session "$@"; }      # zk NAME   (stays resurrectable)
+zd() { zellij delete-session "$@"; }    # zd NAME   (gone for good)
 
-# zssh HOST [SESSION]: SSH in and attach-or-create ONE persistent zellij session
-# (default "main") so your work survives drops — reconnect with the same command.
-# -t forces a TTY; a second arg names a separate workspace on the same host.
+# Single-quote a value for safe embedding in a remote ssh command string.
+_shq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+
+# zssh HOST [DIR|query]: SSH in and reconnect to a persistent zellij session
+# (named by directory basename, like local `z`). No query -> reopen HOST's most
+# recent session, or create one in your login dir if it has none. With a query,
+# fuzzy-match HOST's sessions and attach (fzf picker if several match); with no
+# match, treat it as a directory (relative to your remote home, or absolute) —
+# cd there and start a session named after its basename.
 zssh() {
-    [ -z "$1" ] && { echo "usage: zssh HOST [SESSION]" >&2; return 2; }
-    ssh -t "$1" "zellij attach -c '${2:-main}'"
+    local host="$1" query="$2" names qbase target rc fzrc
+    [ -z "$host" ] && { echo "usage: zssh HOST [DIR|query]" >&2; return 2; }
+
+    if [ -z "$query" ]; then
+        # Reopen the most recent session (newest = last line); else create one
+        # in the login dir, named after it.
+        ssh -t "$host" '
+            s=$(zellij list-sessions -ns 2>/dev/null | tail -n1)
+            [ -n "$s" ] && exec zellij attach "$s"
+            exec zellij -s "$(basename "$PWD")"'
+        rc=$?  # ssh returns 255 only on its own connection failure
+        [ "$rc" -eq 255 ] && echo "zssh: cannot reach '$host' (host unreachable)" >&2
+        return "$rc"
+    fi
+
+    names="$(ssh "$host" 'zellij list-sessions -ns 2>/dev/null')"; rc=$?
+    [ "$rc" -eq 255 ] && { echo "zssh: cannot reach '$host' (host unreachable)" >&2; return 1; }
+    qbase="$(basename -- "$query")"
+
+    if printf '%s\n' "$names" | grep -Fqx -- "$qbase"; then
+        target="$qbase"                                     # exact match wins
+    elif command -v fzf >/dev/null 2>&1; then
+        target="$(printf '%s\n' "$names" | sed '/^$/d' | \
+                  fzf -1 -0 --query="$qbase" --prompt="$host session> ")"; fzrc=$?
+        [ "${fzrc:-0}" -eq 130 ] && return 130              # picker cancelled
+    else
+        target="$(printf '%s\n' "$names" | grep -iF -- "$qbase" | head -n1)"
+    fi
+
+    if [ -n "$target" ]; then
+        ssh -t "$host" "exec zellij attach $(_shq "$target")"
+    else
+        # No session matched: the query is a directory — start zellij there.
+        ssh -t "$host" "cd -- $(_shq "$query") && exec zellij -s $(_shq "$qbase")"
+    fi
 }
 
 # venv

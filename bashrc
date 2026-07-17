@@ -146,10 +146,11 @@ if command -v uv >/dev/null 2>&1 && [ "$SHELL_TYPE" != "unknown" ]; then
     eval "$(uv generate-shell-completion "$SHELL_TYPE")"
 fi
 
-# zoxide: smarter directory jumping. Learns dirs as you cd; jump with a
-# fragment (`z dotf`), pick interactively with `zi`. Plain cd is untouched.
+# zoxide: smarter directory jumping. Learns dirs as you cd; jump with a fragment
+# (`zz dotf`), pick interactively with `zzi`. Uses `--cmd zz` rather than the
+# default `z`, leaving bare `z` free for zellij (see ~/.aliases). cd is untouched.
 if command -v zoxide >/dev/null 2>&1 && [ "$SHELL_TYPE" != "unknown" ]; then
-    eval "$(zoxide init "$SHELL_TYPE")"
+    eval "$(zoxide init --cmd zz "$SHELL_TYPE")"
 fi
 
 # fzf keybindings + completion: Ctrl-R fuzzy history, Ctrl-T fuzzy file insert,
@@ -157,6 +158,52 @@ fi
 # a current release where the distro's is older); an old fzf just no-ops here.
 if command -v fzf >/dev/null 2>&1 && [ "$SHELL_TYPE" != "unknown" ]; then
     eval "$(fzf --"$SHELL_TYPE" 2>/dev/null)"
+fi
+
+# Tab completion for the zellij helpers (see ~/.aliases): za/zk/zd complete local
+# session names; `zssh` completes SSH hosts (arg 1, from ~/.ssh/config) and then
+# that host's session names (arg 2, fetched over SSH). Matching is substring +
+# case-insensitive (`bear` completes `great-bear`), scoped to just these commands.
+if command -v zellij >/dev/null 2>&1; then
+    if [ "$SHELL_TYPE" = "zsh" ]; then
+        # -M spec: case-insensitive (m:) + match anywhere in the word (l:/r:), so
+        # `bear` completes `great-bear`. Single-quoted -> one arg regardless of opts.
+        _zj_sessions() { compadd -M 'm:{a-zA-Z}={A-Za-z} l:|=* r:|=*' -- ${(f)"$(zellij list-sessions -ns 2>/dev/null)"}; }
+        compdef _zj_sessions za zk zd 2>/dev/null
+        _zssh() {
+            if (( CURRENT == 2 )); then
+                local -a hosts
+                hosts=(${(f)"$(awk 'tolower($1)=="host"{for (i=2;i<=NF;i++) if ($i !~ /[*?]/) print $i}' ~/.ssh/config 2>/dev/null)"})
+                compadd -M 'm:{a-zA-Z}={A-Za-z} l:|=* r:|=*' -- $hosts
+            elif (( CURRENT == 3 )); then
+                local out; local -a sess
+                out="$(ssh -o ConnectTimeout=2 -o BatchMode=yes -- $words[2] 'zellij list-sessions -ns' 2>/dev/null)"
+                if (( $? == 255 )); then
+                    _message -r "${words[2]} unreachable"          # empty vs unreachable are now distinct
+                else
+                    sess=(${(f)out})
+                    (( ${#sess} )) && compadd -M 'm:{a-zA-Z}={A-Za-z} l:|=* r:|=*' -- $sess \
+                                    || _message -r "no sessions on ${words[2]} (type a directory to start one)"
+                fi
+            fi
+        }
+        compdef _zssh zssh 2>/dev/null
+    elif [ "$SHELL_TYPE" = "bash" ]; then
+        # grep -iF gives case-insensitive substring matching (bear -> great-bear).
+        _zj_sessions() {
+            COMPREPLY=($(zellij list-sessions -ns 2>/dev/null | grep -iF -- "${COMP_WORDS[COMP_CWORD]}"))
+        }
+        complete -F _zj_sessions za zk zd
+        _zssh() {
+            local cur="${COMP_WORDS[COMP_CWORD]}"
+            if [ "$COMP_CWORD" -eq 1 ]; then
+                COMPREPLY=($(awk 'tolower($1)=="host"{for (i=2;i<=NF;i++) if ($i !~ /[*?]/) print $i}' ~/.ssh/config 2>/dev/null | grep -iF -- "$cur"))
+            elif [ "$COMP_CWORD" -eq 2 ]; then
+                COMPREPLY=($(ssh -o ConnectTimeout=2 -o BatchMode=yes -- "${COMP_WORDS[1]}" 'zellij list-sessions -ns' 2>/dev/null | grep -iF -- "$cur"))
+            fi
+        }
+        complete -F _zssh zssh
+    fi
 fi
 
 # Machine-local overrides: secrets, work tools, per-host aliases.

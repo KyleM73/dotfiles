@@ -40,10 +40,10 @@ themes {
     }
 }
 
-// Bare `zj` opens a single terminal pane (the "shell" layout). Layouts live in
+// Bare `z` opens a single terminal pane (the "shell" layout). Layouts live in
 // ~/.config/zellij/layouts/. Alternatives:
-//   zellij --layout nvim   (full-screen nvim + floating terminal;  alias: zjv)
-//   zellij --layout wide   (editor left / terminal right;          alias: zjw)
+//   zellij --layout nvim   (full-screen nvim + floating terminal;  alias: zv)
+//   zellij --layout wide   (editor left / terminal right;          alias: zw)
 default_layout "shell"
 
 // Mouse support: click panes/tabs, select to copy, scroll. Works locally and

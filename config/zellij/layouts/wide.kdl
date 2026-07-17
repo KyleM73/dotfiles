@@ -1,6 +1,6 @@
 // ~/.config/zellij/layouts/wide.kdl
 // Side-by-side workspace: nvim editor on the left, terminal on the right.
-// Launch with:  zellij --layout wide   (alias: zjw)
+// Launch with:  zellij --layout wide   (alias: zw)
 layout {
     pane size=1 borderless=true {
         plugin location="zellij:tab-bar"

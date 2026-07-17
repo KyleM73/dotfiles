@@ -5,8 +5,8 @@
 // pinned pane stays on top and ignores Alt+f until unpinned. Move/resize it in
 // pane mode (Ctrl+p, then arrows / n / +/-).
 //
-// Launch with:  zellij --layout nvim   (alias: zjv). Bare `zj` opens the plain
-// single-terminal "shell" layout instead; `zjw` is editor-left / terminal-right.
+// Launch with:  zellij --layout nvim   (alias: zv). Bare `z` opens the plain
+// single-terminal "shell" layout instead; `zw` is editor-left / terminal-right.
 // New tabs (Alt+t) open as a flat shell — see new_tab_template below. Switch
 // tabs with Alt+1-9, close with Alt+w (custom keys in config.kdl).
 layout {
