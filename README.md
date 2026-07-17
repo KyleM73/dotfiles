@@ -284,9 +284,10 @@ workspace: `zssh a5090 projects/robot` fuzzy-matches your sessions and attaches
 (an `fzf` picker opens if several match); with no match it `cd`s into that dir on
 the host and starts a session there — same per-directory naming as local `z`.
 
-**Managing sessions:** `z` / `zv` / `zw` name the session after the current
-directory's basename and attach-or-create it, so re-running in a project
-reattaches its session instead of spawning a new random-named one. `zls` lists
+**Managing sessions:** `z` / `zv` / `zw` attach-or-create a session named after a
+directory's basename — the current dir, or a `z <dir>` argument that Tab-completes
+directories (zoxide's known dirs, else a depth-limited `find`; substring, so `z
+files` → `~/projects/dotfiles`). `zls` lists
 sessions (running and — because `session_serialization` is on —
 exited/resurrectable); `za NAME` attaches (`-c` creates); `zk`/`zka` kill
 one/all (they stay resurrectable), `zd`/`zda` delete one/all for good. For a

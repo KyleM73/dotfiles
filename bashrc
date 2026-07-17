@@ -160,11 +160,40 @@ if command -v fzf >/dev/null 2>&1 && [ "$SHELL_TYPE" != "unknown" ]; then
     eval "$(fzf --"$SHELL_TYPE" 2>/dev/null)"
 fi
 
-# Tab completion for the zellij helpers (see ~/.aliases): za/zk/zd complete local
-# session names; `zssh` completes SSH hosts (arg 1, from ~/.ssh/config) and then
-# that host's session names (arg 2, fetched over SSH). Matching is substring +
-# case-insensitive (`bear` completes `great-bear`), scoped to just these commands.
+# Tab completion for the zellij helpers (see ~/.aliases): z/zv/zw complete
+# directories; za/zk/zd complete session names; zssh completes SSH hosts then that
+# host's sessions. Matching is substring + case-insensitive, so `files` completes
+# `~/projects/dotfiles` and `bear` completes `great-bear`.
 if command -v zellij >/dev/null 2>&1; then
+    # Directory candidates for z/zv/zw, given the typed word $1: a directory -> its
+    # children (drill); a partial path -> the parent; else zoxide's known dirs, else
+    # a find under cwd + $HOME (depth 3). Hidden pruned, paths ~-abbreviated.
+    _z_candidates() {
+        local W="$1" Wx base root out="" d
+        Wx="$W"
+        [ "${W:0:1}" = "~" ] && Wx="$HOME${W:1}"           # expand a leading ~
+        if [ -n "$W" ] && [ -d "$Wx" ]; then
+            base="${W%/}"; root="${Wx%/}"                      # word is a dir -> list its children
+            out="$(find "$root" -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' 2>/dev/null \
+                    | sed "s|^$root/|$base/|")"
+        elif [ -n "${W%/*}" ] && [ "${W%/*}" != "$W" ]; then
+            base="${W%/*}"; root="${base/#\~/$HOME}"           # partial component -> search parent
+            out="$(find "$root" -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' 2>/dev/null \
+                    | sed "s|^$root/|$base/|")"
+        else
+            if command -v zoxide >/dev/null 2>&1; then
+                if [ -n "$W" ]; then out="$(zoxide query -l -- "$W" 2>/dev/null)"
+                else                 out="$(zoxide query -l 2>/dev/null)"; fi
+            fi
+            if [ -z "$out" ]; then
+                d=3; [ -z "$W" ] && d=1
+                out="$(find "$HOME" "$PWD" -mindepth 1 -maxdepth "$d" -type d -not -path '*/.*' 2>/dev/null)"
+                [ -n "$W" ] && out="$(printf '%s\n' "$out" | grep -iF -- "$W")"
+            fi
+            out="$(printf '%s\n' "$out" | sed "s|^$HOME/|~/|;s|^$HOME\$|~|")"
+        fi
+        printf '%s\n' "$out" | awk 'NF&&!s[$0]++' | head -50
+    }
     if [ "$SHELL_TYPE" = "zsh" ]; then
         # -M spec: case-insensitive (m:) + match anywhere in the word (l:/r:), so
         # `bear` completes `great-bear`. Single-quoted -> one arg regardless of opts.
@@ -188,6 +217,19 @@ if command -v zellij >/dev/null 2>&1; then
             fi
         }
         compdef _zssh zssh 2>/dev/null
+        _z_complete() {
+            (( CURRENT == 2 )) || return          # only the (single) directory arg
+            local word="$PREFIX$SUFFIX"
+            if [[ "$word" == */* ]]; then
+                _files -/                         # a path -> native dir completion (drills, handles ~)
+            else
+                # bare fragment -> fuzzy jump (zoxide/find). -Q -S '' + trailing / put
+                # a real, expandable ~ and slash in the word; type on to drill (_files).
+                local -a dirs; dirs=(${(f)"$(_z_candidates "$word")"})
+                (( ${#dirs} )) && compadd -Q -S '' -M 'm:{a-zA-Z}={A-Za-z} l:|=* r:|=*' -- ${^dirs}/
+            fi
+        }
+        compdef _z_complete z zv zw 2>/dev/null
     elif [ "$SHELL_TYPE" = "bash" ]; then
         # grep -iF gives case-insensitive substring matching (bear -> great-bear).
         _zj_sessions() {
@@ -203,6 +245,14 @@ if command -v zellij >/dev/null 2>&1; then
             fi
         }
         complete -F _zssh zssh
+        _z_complete_bash() {
+            [ "$COMP_CWORD" -eq 1 ] || return     # only the (single) directory arg
+            local IFS=$'\n'
+            # trailing / + nospace: finish with a slash, not a space, so Tab drills in
+            COMPREPLY=($(_z_candidates "${COMP_WORDS[COMP_CWORD]}" | sed 's|$|/|'))
+            [ ${#COMPREPLY[@]} -gt 0 ] && compopt -o nospace 2>/dev/null
+        }
+        complete -F _z_complete_bash z zv zw
     fi
 fi
 

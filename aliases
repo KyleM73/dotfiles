@@ -72,25 +72,31 @@ alias yazirc='edit ~/.config/yazi/yazi.toml'
 
 # Neovim / multiplexer shortcuts
 alias v='nvim'
-# z [LAYOUT]: attach to (or create) a zellij session named after the current
-# directory's basename, so re-running in a project reattaches its session instead
-# of spawning a new random-named one. LAYOUT applies only on create; zv/zw pass
-# it. z = single terminal (default), zv = nvim + float, zw = editor | terminal.
-# (Bare `z` is zellij; zoxide's jump lives on `zz`/`zzi` — see bashrc.) For a
-# custom-named session use `zellij -s NAME` directly.
-z() {
-    local name="${PWD##*/}"
-    name="${name//[^A-Za-z0-9_-]/-}"; [ -z "$name" ] && name="z"
-    if zellij list-sessions -ns 2>/dev/null | grep -qx "$name"; then
-        zellij attach "$name"
-    elif [ -n "$1" ]; then
-        zellij --session "$name" --layout "$1"
+# z [DIR]: attach to (or create) a zellij session named after DIR's basename
+# (default: cwd), with panes starting in DIR — so re-running in a project reattaches
+# it. zv/zw use the nvim / wide layout. Tab-completes directories (`z files` ->
+# `~/projects/dotfiles`; see bashrc). zoxide's jump lives on `zz`/`zzi`.
+_zsession() {   # _zsession LAYOUT [DIR]
+    local layout="$1" dir="${2:-$PWD}" name r rest
+    dir="${dir%/}"; [ -z "$dir" ] && dir=/                    # tolerate a trailing slash from completion
+    rest="${dir#\~}"; [ "$rest" != "$dir" ] && dir="$HOME$rest"   # expand a leading ~ (escaped by completion)
+    if [ -n "$2" ] && [ ! -d "$dir" ]; then                   # not a dir -> fuzzy-resolve via zoxide
+        r="$(zoxide query -- "$dir" 2>/dev/null)"
+        if [ -n "$r" ] && [ -d "$r" ]; then dir="$r"
+        else echo "z: no directory or zoxide match: $2" >&2; return 1; fi
+    fi
+    name="${dir##*/}"; name="${name//[^A-Za-z0-9_-]/-}"; [ -z "$name" ] && name="z"
+    if zellij list-sessions -ns 2>/dev/null | grep -Fqx -- "$name"; then
+        zellij attach "$name"                                    # existing -> attach
+    elif [ -n "$layout" ]; then
+        ( cd "$dir" && zellij -s "$name" --layout "$layout" )    # new, started in DIR
     else
-        zellij --session "$name"
+        ( cd "$dir" && zellij -s "$name" )
     fi
 }
-alias zv='z nvim'   # full-screen nvim + floating terminal (Alt+f)
-alias zw='z wide'   # editor left / terminal right
+z()  { _zsession ''   "$1"; }   # z [dir]:  single terminal
+zv() { _zsession nvim "$1"; }   # zv [dir]: full-screen nvim + floating terminal (Alt+f)
+zw() { _zsession wide "$1"; }   # zw [dir]: editor left / terminal right
 
 # Session management. With session_serialization on, `kill` leaves a session
 # resurrectable (still listed); `delete` removes it for good. za/zk/zd are
@@ -106,11 +112,10 @@ zd() { zellij delete-session "$@"; }    # zd NAME   (gone for good)
 _shq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 
 # zssh HOST [DIR|query]: SSH in and reconnect to a persistent zellij session
-# (named by directory basename, like local `z`). No query -> reopen HOST's most
-# recent session, or create one in your login dir if it has none. With a query,
-# fuzzy-match HOST's sessions and attach (fzf picker if several match); with no
-# match, treat it as a directory (relative to your remote home, or absolute) —
-# cd there and start a session named after its basename.
+# (named by directory basename, like `z`). No query -> reopen HOST's most recent
+# session (or create one in your login dir). With a query, fuzzy-match HOST's
+# sessions and attach (fzf picker if several); with no match, cd into it as a
+# directory (relative to remote home, or absolute) and start a session there.
 zssh() {
     local host="$1" query="$2" names qbase target rc fzrc
     [ -z "$host" ] && { echo "usage: zssh HOST [DIR|query]" >&2; return 2; }

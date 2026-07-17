@@ -100,7 +100,7 @@ M.sections = {
     "$ za NAME        attach     (za -c NAME creates it)",
     "$ zk / zka       kill one / all (stay resurrectable)",
     "$ zd / zda       delete one / all (gone for good)",
-    "$ z / zv / zw    open this dir's session: term / nvim / wide",
+    "$ z / zv / zw    cwd or <dir> session (Tab): term/nvim/wide",
     "$ zssh HOST      remote: reopen recent, or [dir] (fuzzy/new)",
   }},
   { name = "Yazi", lines = {
