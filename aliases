@@ -119,7 +119,8 @@ _shq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 # wifi (needs mosh + UDP 60000-61000 on HOST; no in-session agent forwarding).
 _zconnect() {   # _zconnect TRANSPORT HOST REMOTE_SH — run REMOTE_SH interactively
     case "$1" in
-        mosh) mosh "$2" -- sh -c "$3" ;;
+        mosh) echo "mssh: if this hangs at 'Connecting...', UDP 60000-61000 is likely blocked -> Ctrl-C and use: zssh $2" >&2
+              mosh "$2" -- sh -c "$3" ;;
         *)    ssh -t "$2" "$3" ;;
     esac
 }
