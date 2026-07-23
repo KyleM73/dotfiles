@@ -3,7 +3,7 @@
 // default layout, so bare `z` opens it; add tabs with Alt+t.
 layout {
     pane size=1 borderless=true {
-        plugin location="zellij:tab-bar"
+        plugin location="zjtabs"
     }
     pane
     pane size=2 borderless=true {
@@ -13,7 +13,7 @@ layout {
     // New tabs (Alt+t, or Ctrl+t then n) keep the tab/status bars, as a plain shell.
     new_tab_template {
         pane size=1 borderless=true {
-            plugin location="zellij:tab-bar"
+            plugin location="zjtabs"
         }
         pane
         pane size=2 borderless=true {

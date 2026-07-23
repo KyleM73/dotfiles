@@ -3,7 +3,7 @@
 // Launch with:  zellij --layout wide   (alias: zw)
 layout {
     pane size=1 borderless=true {
-        plugin location="zellij:tab-bar"
+        plugin location="zjtabs"
     }
     pane split_direction="vertical" {
         pane command="nvim" {
@@ -18,7 +18,7 @@ layout {
     // New tabs (Alt+t, or Ctrl+t then n) keep the tab/status bars, as a plain shell.
     new_tab_template {
         pane size=1 borderless=true {
-            plugin location="zellij:tab-bar"
+            plugin location="zjtabs"
         }
         pane
         pane size=2 borderless=true {

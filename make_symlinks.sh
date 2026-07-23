@@ -57,6 +57,27 @@ for dir in nvim yazi zellij ghostty; do
     echo "  $target -> $DOTFILES/config/$dir"
 done
 
+# Pre-authorize the zjstatus tab-bar plugin. Zellij has plugins request
+# permissions via an interactive prompt, but our 1-line bar pane has no room to
+# show it — so grant it up front by seeding zellij's permission cache (the
+# documented mechanism; see config/zellij/config.kdl). Idempotent; per-OS cache.
+ZJURL="$(grep -oE 'https://[^"]*zjstatus\.wasm' "$DOTFILES/config/zellij/config.kdl" 2>/dev/null | head -1)"
+if [ -n "$ZJURL" ]; then
+    case "$(uname -s)" in
+        Darwin) ZJCACHE="$HOME/Library/Caches/org.Zellij-Contributors.Zellij" ;;
+        *)      ZJCACHE="${XDG_CACHE_HOME:-$HOME/.cache}/zellij" ;;
+    esac
+    ZJPERM="$ZJCACHE/permissions.kdl"
+    if [ -f "$ZJPERM" ] && grep -qF "$ZJURL" "$ZJPERM"; then
+        echo "  zjstatus tab-bar plugin already authorized"
+    else
+        mkdir -p "$ZJCACHE"
+        printf '"%s" {\n    ReadApplicationState\n    ChangeApplicationState\n    RunCommands\n}\n' \
+            "$ZJURL" >> "$ZJPERM"
+        echo "  authorized zjstatus tab-bar plugin -> $ZJPERM"
+    fi
+fi
+
 # Local git identity (untracked; never committed)
 GITLOCAL="$HOME/.gitconfig.local"
 if [ ! -f "$GITLOCAL" ]; then
@@ -132,4 +153,5 @@ source ~/."$SYMLINK_BASENAME"
 # Don't leak helpers/temp vars into the live shell when sourced.
 unset -f backup 2>/dev/null
 unset name email ans whost wname wemail gv file rc dir target \
+      ZJURL ZJCACHE ZJPERM \
       EXISTING_NAME EXISTING_EMAIL GITLOCAL SYMLINK_BASENAME DOTFILES_BKP 2>/dev/null

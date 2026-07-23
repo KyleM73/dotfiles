@@ -46,6 +46,27 @@ themes {
 //   zellij --layout wide   (editor left / terminal right;          alias: zw)
 default_layout "shell"
 
+// Tab bar. zjstatus (a plugin) replaces the built-in top bar so each tab shows
+// {index} — its LIVE position — instead of a frozen "Tab #N", so closing or
+// reordering tabs renumbers them to match Alt+1-9. zellij downloads and caches
+// the .wasm from the release URL on first use (nothing vendored); the layouts
+// reference this alias as `location="zjtabs"`. Named ANSI colors (not hex) keep
+// it following the terminal theme. Add {name} to also show tab names.
+//
+// Plugins need a permission grant, and a 1-line bar pane can't show the prompt,
+// so make_symlinks.sh pre-authorizes it in zellij's permission cache. If the bar
+// is ever blank (e.g. after bumping the version below), re-run make_symlinks.sh
+// or grant manually from a running session with:
+//   zellij plugin -- https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm
+plugins {
+    zjtabs location="https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm" {
+        format_left  "{tabs}"
+        format_right ""
+        tab_normal   "#[fg=cyan,bg=black] {index} "
+        tab_active   "#[fg=black,bg=cyan,bold] {index} "
+    }
+}
+
 // Mouse support: click panes/tabs, select to copy, scroll. Works locally and
 // over SSH in ghostty.
 mouse_mode true
