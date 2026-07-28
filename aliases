@@ -98,6 +98,11 @@ z()  { _zsession ''   "$1"; }   # z [dir]:  single terminal
 zv() { _zsession nvim "$1"; }   # zv [dir]: full-screen nvim + floating terminal (Alt+f)
 zw() { _zsession wide "$1"; }   # zw [dir]: editor left / terminal right
 
+# ztab: re-sync every zellij tab's name to its focused pane's path (shell -> dir,
+# nvim -> dir/filename). New tabs are named once on creation (see bashrc); run
+# this to refresh after cd-ing around. A tab you rename yourself stays put.
+ztab() { "$HOME/.config/zellij/ztab.sh" "$@"; }
+
 # Session management. With session_serialization on, `kill` leaves a session
 # resurrectable (still listed); `delete` removes it for good. za/zk/zd are
 # functions (not aliases) so zsh honors their session-name completion (see bashrc).

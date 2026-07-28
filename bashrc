@@ -254,6 +254,15 @@ if command -v zellij >/dev/null 2>&1; then
         }
         complete -F _z_complete_bash z zv zw
     fi
+
+    # Name a freshly opened zellij tab after its directory (last two path
+    # components) — once, at shell startup, NOT per command. Re-sync every tab's
+    # name to its focused pane anytime with `ztab` (nvim: <leader>tz). See
+    # config/zellij/ztab.sh. Backgrounded in a subshell so it never delays the
+    # prompt and prints no job-control line.
+    if [ -n "$ZELLIJ" ] && [ -x "$HOME/.config/zellij/ztab.sh" ]; then
+        ( "$HOME/.config/zellij/ztab.sh" self >/dev/null 2>&1 & )
+    fi
 fi
 
 # Machine-local overrides: secrets, work tools, per-host aliases.

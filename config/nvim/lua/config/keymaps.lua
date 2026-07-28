@@ -8,6 +8,9 @@ map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 -- Toggle soft-wrap (off by default; handy for prose / markdown).
 map("n", "<leader>tw", "<cmd>set wrap!<CR>", { desc = "[T]oggle [w]rap" })
 
+-- Re-sync every zellij tab's name to its focused pane (see config/zellij/ztab.sh).
+map("n", "<leader>tz", function() vim.system({ vim.fn.expand("~/.config/zellij/ztab.sh") }) end, { desc = "[T]ab names: sync [z]ellij" })
+
 -- Floating cheat-sheet overlay (a tab per tool). See lua/config/cheatsheet.lua.
 map("n", "<leader>?", function() require("config.cheatsheet").open() end, { desc = "Cheat sheet overlay" })
 

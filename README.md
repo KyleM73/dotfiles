@@ -270,12 +270,20 @@ status bar, and session persistence (survives SSH disconnects — detach with
 - **Prefix-free tabs:** `Alt+t` new, `Alt+1`-`Alt+9` go to tab N, `Alt+w` close
   — the macOS new/switch/close-tab convention (`Cmd+T` / `Cmd+1-9` / `Cmd+W`),
   on `Alt` since `Cmd` can't reach a remote box. Reorder with `Alt+i` / `Alt+o`.
-  Each tab is labelled with its **live position** (via the
+  Each tab is labelled `index: name` (via the
   [zjstatus](https://github.com/dj95/zjstatus) plugin, which zellij downloads and
-  caches from its release URL — nothing vendored), so closing or reordering
-  renumbers them to match `Alt+1-9`. `make_symlinks.sh` pre-authorizes the plugin
-  (a 1-line bar pane can't show zellij's permission prompt), so it just works —
-  no manual grant.
+  caches from its release URL — nothing vendored): the **index** is the tab's
+  live position, so closing or reordering renumbers them to match `Alt+1-9`, and
+  the **name** is auto-set to its focused pane's path — a shell's directory
+  (`projects/dotfiles`) or, in nvim, the `dir/filename` you're editing.
+  `make_symlinks.sh` pre-authorizes the plugin (a 1-line bar pane can't show
+  zellij's permission prompt), so it just works — no manual grant.
+- **Tab names** are set once when a tab opens; they don't re-run per command. To
+  re-sync every tab to its focused pane after moving around, run **`ztab`** (or
+  **`<leader>tz`** in nvim). A tab you rename yourself (`Ctrl+t` then `r`) is left
+  alone until you clear the name. Mechanism: nvim publishes `dir/filename` as its
+  pane title and `ztab` reads one `zellij action list-panes`, renaming each tab by
+  id — see [`config/zellij/ztab.sh`](config/zellij/ztab.sh).
 - Copy uses OSC52 (works over SSH); on a local Mac set `copy_command "pbcopy"`.
 
 **Working over SSH (survive drops):** open **one** terminal tab and run **`zssh

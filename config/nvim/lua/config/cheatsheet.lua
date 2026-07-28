@@ -102,6 +102,7 @@ M.sections = {
     "$ zk / zka       kill one / all (stay resurrectable)",
     "$ zd / zda       delete one / all (gone for good)",
     "$ z / zv / zw    cwd or <dir> session (Tab): term/nvim/wide",
+    "$ ztab           resync tab names to focused pane (nvim: <leader>tz)",
     "$ zssh HOST      remote: reopen recent, or [dir] (fuzzy/new)",
     "$ mssh HOST      like zssh, over mosh (spotty/roaming wifi)",
   }},

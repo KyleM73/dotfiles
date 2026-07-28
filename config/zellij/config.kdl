@@ -47,11 +47,13 @@ themes {
 default_layout "shell"
 
 // Tab bar. zjstatus (a plugin) replaces the built-in top bar so each tab shows
-// {index} — its LIVE position — instead of a frozen "Tab #N", so closing or
-// reordering tabs renumbers them to match Alt+1-9. zellij downloads and caches
-// the .wasm from the release URL on first use (nothing vendored); the layouts
-// reference this alias as `location="zjtabs"`. Named ANSI colors (not hex) keep
-// it following the terminal theme. Add {name} to also show tab names.
+// "{index}: {name}" — its LIVE position (renumbers on close/reorder to match
+// Alt+1-9) plus its name. Tabs are auto-named after their focused pane's path
+// (shell -> dir, nvim -> dir/filename) by config/zellij/ztab.sh, wired up in
+// bashrc and the nvim config; refresh anytime with `ztab` / <leader>tz. zellij
+// downloads and caches the .wasm from the release URL on first use (nothing
+// vendored); the layouts reference this alias as `location="zjtabs"`. Named ANSI
+// colors (not hex) keep it following the terminal theme.
 //
 // Plugins need a permission grant, and a 1-line bar pane can't show the prompt,
 // so make_symlinks.sh pre-authorizes it in zellij's permission cache. If the bar
@@ -62,8 +64,8 @@ plugins {
     zjtabs location="https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm" {
         format_left  "{tabs}"
         format_right ""
-        tab_normal   "#[fg=cyan,bg=black] {index} "
-        tab_active   "#[fg=black,bg=cyan,bold] {index} "
+        tab_normal   "#[fg=cyan,bg=black] {index}: {name} "
+        tab_active   "#[fg=black,bg=cyan,bold] {index}: {name} "
     }
 }
 

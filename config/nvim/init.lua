@@ -26,6 +26,7 @@ vim.g.have_nerd_font = true
 require("config.options")
 require("config.keymaps")
 require("config.clipboard")
+require("config.autocmds")
 
 -- Bootstrap lazy.nvim (the plugin manager) on first launch.
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
