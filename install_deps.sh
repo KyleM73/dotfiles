@@ -396,14 +396,46 @@ echo "Multiplexer + file manager:"
 smart_install zellij zellij install_zellij_release
 smart_install yazi   yazi   install_yazi_release
 
+# Build mosh from its release tarball (which ships ./configure) into /usr/local.
+# Needed because copying from a remote zellij to your local clipboard rides the
+# OSC 52 escape, which mosh only forwards since 1.4.0 — but some LTS distros still
+# package 1.3.x (Ubuntu 22.04 = 1.3.2), and the mosh-dev PPA is unreachable on
+# locked-down networks. apt-scoped: elsewhere the packaged mosh is already >=1.4.
+MOSH_SRC="https://github.com/mobile-shell/mosh/releases/download/mosh-1.4.0/mosh-1.4.0.tar.gz"
+install_mosh_source() {
+    local tmp log
+    [ "$PM" = "apt-get" ] || { echo "  ! mosh is <1.4 (no OSC 52 clipboard); build from source: https://mosh.org"; return 1; }
+    [ "$PM_USABLE" = "1" ] || { echo "  ! mosh is <1.4 (no OSC 52 clipboard); need root to build 1.4.0"; return 1; }
+    have_dl || { echo "  ! mosh: need curl or wget to fetch source"; return 1; }
+    echo "  → mosh       building 1.4.0 from source -> /usr/local (for OSC 52 clipboard)"
+    if [ "$DRY_RUN" = "1" ]; then echo "    [dry-run] apt build deps; dl $MOSH_SRC; ./configure; make; $SUDO make install"; return 0; fi
+    pm_install protobuf-compiler libprotobuf-dev libutempter-dev libncurses-dev \
+               libssl-dev zlib1g-dev pkg-config g++ make || { echo "  ! mosh: could not install build deps"; return 1; }
+    tmp="$(mktemp -d)"; log="$tmp/build.log"
+    dl "$MOSH_SRC" "$tmp/mosh.tar.gz" || { rm -rf "$tmp"; return 1; }
+    if ( cd "$tmp" && tar xzf mosh.tar.gz && cd mosh-1.4.0 \
+            && ./configure --prefix=/usr/local && make -j"$(nproc 2>/dev/null || echo 2)" ) >"$log" 2>&1 \
+       && $SUDO make -C "$tmp/mosh-1.4.0" install >>"$log" 2>&1; then
+        hash -r 2>/dev/null || true
+    else
+        echo "  ! mosh: source build failed (see below)"; tail -3 "$log"; rm -rf "$tmp"; return 1
+    fi
+    rm -rf "$tmp"
+}
+
 # ---- resilient remote shell (mosh) -----------------------------------------
 # Pairs with zellij for remote work over spotty/roaming wifi: local echo makes
 # typing feel instant and the session survives drops (see the `mssh` alias).
 # Well-packaged everywhere; needs root on Linux + inbound UDP 60000-61000 on the
-# server. Install on both your laptop and the boxes you connect to.
+# server. Install on both your laptop and the boxes you connect to. Copy-to-local
+# clipboard (OSC 52) needs mosh >= 1.4.0, so upgrade an older packaged one.
 echo
 echo "Remote shell (mosh — zellij over spotty wifi):"
 ensure_pkg mosh mosh "https://mosh.org — needed for the mssh helper"
+if command -v mosh >/dev/null 2>&1 && ver_lt "$(ver_mm mosh)" 1.4; then
+    echo "  (mosh $(ver_mm mosh) predates OSC 52 clipboard support; needs >= 1.4.0)"
+    install_mosh_source
+fi
 
 # ---- finder + search --------------------------------------------------------
 echo

@@ -306,8 +306,12 @@ the host and starts a session there — same per-directory naming as local `z`.
 - **`mssh HOST`** — `zssh` over **mosh**: identical session logic, but mosh's UDP
   transport gives instant local echo (typing stays snappy at high latency) and
   survives drops / IP changes, reconnecting itself when wifi returns. Needs `mosh`
-  on both ends (`install_deps.sh`) and inbound UDP 60000-61000 on the box. Caveat:
-  mosh doesn't forward your ssh-agent, so use `zssh` for `git push` from the remote.
+  on both ends (`install_deps.sh`) and inbound UDP 60000-61000 on the box. Two
+  caveats: mosh doesn't forward your ssh-agent, so use `zssh` for `git push` from
+  the remote; and copying to your local clipboard (the OSC 52 escape zellij emits)
+  needs **mosh ≥ 1.4.0 on the remote** — older ones silently drop it. Some LTS
+  distros still package 1.3.x (Ubuntu 22.04 = 1.3.2), so `install_deps.sh` builds
+  1.4.0 from source there.
 
 **Managing sessions:** `z` / `zv` / `zw` attach-or-create a session named after a
 directory's basename — the current dir, or a `z <dir>` argument that Tab-completes
