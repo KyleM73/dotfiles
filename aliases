@@ -172,3 +172,8 @@ mssh() { command -v mosh >/dev/null 2>&1 || { echo "mssh: mosh not installed (ru
 
 # venv
 alias venv="source .venv/bin/activate"
+
+# Tailscale CLI on macOS lives inside the app bundle (Linux has it on PATH)
+[ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ] && \
+    alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+

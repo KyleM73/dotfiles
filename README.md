@@ -22,6 +22,7 @@ That single command is the whole setup. `make_symlinks.sh`:
   | Repo path       | Symlink                    |
   | --------------- | -------------------------- |
   | `bashrc`        | `~/.bashrc` and `~/.zshrc` |
+  | `zshenv`        | `~/.zshenv`                |
   | `aliases`       | `~/.aliases`               |
   | `vimrc`         | `~/.vimrc`                 |
   | `screenrc`      | `~/.screenrc`              |

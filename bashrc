@@ -38,6 +38,12 @@ else
     export VISUAL=vim
 fi
 
+# mosh-server (and friends) refuse to start without a UTF-8 locale; ssh
+# clients usually forward LANG, but default one when they don't. (zsh remote
+# commands get this from zshenv instead — they never read this file.)
+: "${LANG:=en_US.UTF-8}"
+export LANG
+
 # Fix less issue in Docker
 export LESS="-R"
 

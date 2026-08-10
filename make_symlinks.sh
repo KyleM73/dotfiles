@@ -31,7 +31,7 @@ backup() {  # backup <path>
 
 # Back up real files (not our own symlinks), then link
 echo "Linking dotfiles into $HOME (backups in $DOTFILES_BKP)"
-for file in aliases vimrc screenrc gitconfig; do
+for file in aliases vimrc screenrc gitconfig zshenv; do
     [ -e ~/."$file" ] && [ ! -L ~/."$file" ] && backup ~/."$file"
     ln -sf "$DOTFILES/$file" ~/."$file"
     echo "  ~/.$file -> $DOTFILES/$file"
