@@ -5,3 +5,9 @@ dotfiles.bkp/
 
 # macOS Finder metadata
 .DS_Store
+
+# Python bytecode: zweb-switcher.py compiles next to itself inside
+# config/zellij (~/.config/zellij symlinks into the repo), and .pyc files
+# embed absolute home paths — never publish them.
+__pycache__/
+*.pyc
