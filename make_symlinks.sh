@@ -57,6 +57,13 @@ for dir in nvim yazi zellij ghostty; do
     echo "  $target -> $DOTFILES/config/$dir"
 done
 
+# Guard pushes with the tracked secret-scanning hook (githooks/pre-push):
+# this is a public repo, so anything that smells like a key, token, or
+# tailnet identifier must never leave the machine. Idempotent.
+if git -C "$DOTFILES" config core.hooksPath githooks 2>/dev/null; then
+    echo "Push guard: core.hooksPath -> githooks (secret scan on every push)"
+fi
+
 # Pre-authorize the zjstatus tab-bar plugin. Zellij has plugins request
 # permissions via an interactive prompt, but our 1-line bar pane has no room to
 # show it — so grant it up front by seeding zellij's permission cache (the
