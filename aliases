@@ -74,10 +74,21 @@ alias yazirc='edit ~/.config/yazi/yazi.toml'
 alias v='nvim'
 # z [DIR]: attach to (or create) a zellij session named after DIR's basename
 # (default: cwd), with panes starting in DIR — so re-running in a project reattaches
-# it. zv/zw use the nvim / wide layout. Tab-completes directories (`z files` ->
+# it. zv/zw/zm use the nvim / wide / mobile layout. Tab-completes directories (`z files` ->
 # `~/projects/dotfiles`; see bashrc). zoxide's jump lives on `zz`/`zzi`.
-_zsession() {   # _zsession LAYOUT [DIR]
-    local layout="$1" dir="${2:-$PWD}" name r rest
+_zsession() {   # _zsession LAYOUT [DIR] [SUFFIX]
+    local layout="$1" dir="${2:-$PWD}" suffix="$3" name r rest
+    case "$2" in -h|--help) cat <<'EOF'
+usage: z|zv|zw|zm [DIR]
+  Attach to (or create) the zellij session named after DIR's basename
+  (default: the current dir). DIR tab-completes; a non-directory argument
+  fuzzy-matches via zoxide (z files -> ~/projects/dotfiles).
+  z   single terminal pane        (layout: shell)
+  zv  nvim + floating terminal    (layout: nvim)
+  zw  editor left, terminal right (layout: wide)
+  zm  mobile-sized, session named "<dir>-mobile" (layout: mobile)
+EOF
+    return 0 ;; esac
     dir="${dir%/}"; [ -z "$dir" ] && dir=/                    # tolerate a trailing slash from completion
     rest="${dir#\~}"; [ "$rest" != "$dir" ] && dir="$HOME$rest"   # expand a leading ~ (escaped by completion)
     if [ -n "$2" ] && [ ! -d "$dir" ]; then                   # not a dir -> fuzzy-resolve via zoxide
@@ -85,18 +96,30 @@ _zsession() {   # _zsession LAYOUT [DIR]
         if [ -n "$r" ] && [ -d "$r" ]; then dir="$r"
         else echo "z: no directory or zoxide match: $2" >&2; return 1; fi
     fi
-    name="${dir##*/}"; name="${name//[^A-Za-z0-9_-]/-}"; [ -z "$name" ] && name="z"
-    if zellij list-sessions -ns 2>/dev/null | grep -Fqx -- "$name"; then
-        zellij attach "$name"                                    # existing -> attach
-    elif [ -n "$layout" ]; then
-        ( cd "$dir" && zellij -s "$name" --layout "$layout" )    # new, started in DIR
+    dir="$(cd -- "$dir" 2>/dev/null && pwd)" || { echo "z: cannot cd to $dir" >&2; return 1; }  # resolve . / .. / relative so the name is the real basename
+    name="${dir##*/}"; name="${name//[^A-Za-z0-9_-]/-}"
+    while [ "${name#-}" != "$name" ]; do name="${name#-}"; done  # no leading '-': zellij would parse the name as a flag
+    [ -z "$name" ] && name="z"
+    name="$name$suffix"
+    # One race-free call: attach if the session exists (running, or exited ->
+    # resurrect), else create it with LAYOUT in DIR. (A check-then-act split
+    # here can lose the race against web clients, which create and drop
+    # sessions on their own as browser tabs come and go.)
+    if [ -n "$layout" ]; then
+        ( cd "$dir" && zellij --layout "$layout" attach --create "$name" )
     else
-        ( cd "$dir" && zellij -s "$name" )
+        ( cd "$dir" && zellij attach --create "$name" )
     fi
 }
 z()  { _zsession ''   "$1"; }   # z [dir]:  single terminal
 zv() { _zsession nvim "$1"; }   # zv [dir]: full-screen nvim + floating terminal (Alt+f)
 zw() { _zsession wide "$1"; }   # zw [dir]: editor left / terminal right
+# zm gets its own "<dir>-mobile" session: a layout (and its new_tab_template)
+# is baked in at session creation, so reusing the plain dir name would turn
+# your regular session into a mobile-formatted one — and a mobile client
+# attaching to the desktop session would shrink it (zellij sizes to the
+# smallest client).
+zm() { _zsession mobile "$1" "-mobile"; }  # zm [dir]: mobile-sized (1-line dir bar, no status bar)
 
 # ztab: re-sync every zellij tab's name to its focused pane's path (shell -> dir,
 # nvim -> dir/filename). New tabs are named once on creation (see bashrc); run
@@ -132,7 +155,10 @@ _zconnect() {   # _zconnect TRANSPORT HOST REMOTE_SH — run REMOTE_SH interacti
 _zssh_impl() {  # _zssh_impl TRANSPORT HOST [DIR|query]
     local xport="$1" host="$2" query="$3" name names qbase target rc fzrc
     name=zssh; [ "$xport" = mosh ] && name=mssh
-    [ -z "$host" ] && { echo "usage: $name HOST [DIR|query]" >&2; return 2; }
+    case "$host" in ''|-h|--help)
+        echo "usage: $name HOST [DIR|query] — reattach HOST's most recent zellij session; a query fuzzy-matches its sessions, a dir starts one there"
+        [ -n "$host" ] && return 0 || return 2 ;;
+    esac
 
     if [ -z "$query" ]; then
         # Reopen the most recent session (newest = last line); else create one in
@@ -169,6 +195,146 @@ _zssh_impl() {  # _zssh_impl TRANSPORT HOST [DIR|query]
 }
 zssh() { _zssh_impl ssh "$@"; }
 mssh() { command -v mosh >/dev/null 2>&1 || { echo "mssh: mosh not installed (run install_deps.sh)" >&2; return 1; }; _zssh_impl mosh "$@"; }
+
+# zweb: manage zellij's browser access (the web client). The server itself
+# starts with any zellij session (web_server true in config.kdl) and listens on
+# 127.0.0.1:8082 ONLY. `zweb up` publishes it on your tailnet as
+# https://<machine>.<tailnet>.ts.net via `tailscale serve` — browser-trusted
+# TLS, unreachable off-tailnet, persists across reboots. Each device logs in
+# once with a token minted by `zweb token NAME`; the login sets an httpOnly
+# cookie, and the token itself is shown once and can't be re-read (only
+# revoked). https://HOST/<session-name> attaches to (or resurrects) that
+# session — bookmark per-session URLs; on mobile, Add to Home Screen gives a
+# fullscreen client. Attaching a small screen resizes the whole session to it
+# (smallest client wins), so for mobile work prefer a dedicated session (`zm`)
+# or fullscreen one pane (Ctrl+p, f) while attached.
+#   zweb [status]      web server + tailnet-proxy status
+#   zweb start|stop    run/stop the server by hand (normally automatic)
+#   zweb token NAME    mint a login token (one per device: mobile, laptop, ...)
+#   zweb rotoken NAME  mint a read-only token (watch, no input)
+#   zweb tokens        list token names + creation dates
+#   zweb revoke NAME   revoke a token (kills its devices' logins)
+#   zweb up|down       publish / unpublish on the tailnet; up also starts the
+#                      mobile switcher + key-row page at https://HOST/s
+# Switcher process tracking. A pgrep -f pattern is a trap here: it can match
+# an editor with the file open, and macOS framework Python rewrites argv[0]
+# to .../Python.app/.../Python so a python3-anchored pattern never matches.
+# A pidfile, re-checked against the pid's live command line, is unambiguous.
+_zweb_pidfile() { echo "${TMPDIR:-/tmp}/zweb-switcher.$(id -u).pid"; }
+_zweb_switcher_pid() {  # print the running switcher's pid, else fail
+    local pf pid; pf="$(_zweb_pidfile)"
+    pid="$(cat "$pf" 2>/dev/null)" || return 1
+    [ -n "$pid" ] && ps -p "$pid" -o command= 2>/dev/null | grep -q 'zweb-switcher\.py' \
+        && echo "$pid"
+}
+_tsbin() {  # tailscale CLI: on PATH (Linux) or inside the macOS app bundle
+    if command -v tailscale >/dev/null 2>&1; then command tailscale "$@"
+    elif [ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]; then
+        "/Applications/Tailscale.app/Contents/MacOS/Tailscale" "$@"
+    else echo "zweb: tailscale CLI not found (install Tailscale)" >&2; return 127; fi
+}
+# Zellij's token store: a small sqlite db (name + token hash per row). Only
+# used to work around zellij-org/zellij#4976 below.
+_zweb_tokendb() {
+    case "$(uname -s)" in
+        Darwin) echo "$HOME/Library/Application Support/org.Zellij-Contributors.Zellij/tokens.db" ;;
+        *)      echo "${XDG_DATA_HOME:-$HOME/.local/share}/zellij/tokens.db" ;;
+    esac
+}
+zweb() {
+    local cmd="${1:-status}" arg="$2" fqdn out autoname db
+    case "$cmd" in
+        status)
+            zellij web --status
+            _tsbin serve status 2>/dev/null || echo "zweb: no tailnet proxy on this host (publish with: zweb up)"
+            [ -n "$(_zweb_switcher_pid)" ] \
+                && echo "zweb: mobile switcher running (127.0.0.1:8083, mounted at /s)" \
+                || echo "zweb: mobile switcher not running (starts with: zweb up)"
+            # Sharing is a per-session property fixed at creation: sessions
+            # started while web_sharing was off (or sharing toggled off since)
+            # loop "connection lost" in the browser instead of saying why.
+            echo "zweb: browser stuck on 'connection lost'? That session isn't web-shared (started while web_sharing was off) -> in it: Ctrl+o, s, then start sharing" ;;
+        start) zellij web -d ;;
+        stop)  zellij web --stop ;;
+        token|rotoken)
+            [ -n "$arg" ] || { echo "usage: zweb $cmd NAME   (e.g. zweb $cmd mobile)" >&2; return 2; }
+            case "$arg" in (*[!A-Za-z0-9_-]*) echo "zweb: NAME must be letters/digits/_/- only" >&2; return 2 ;; esac
+            local flag=--create-token; [ "$cmd" = rotoken ] && flag=--create-read-only-token
+            # Try the documented spelling first; zellij <= 0.44.3 rejects it
+            # (--token-name wrongly marked exclusive, zellij-org/zellij#4976).
+            if zellij web "$flag" --token-name "$arg" 2>/dev/null; then return 0; fi
+            out="$(zellij web "$flag")" || { printf '%s\n' "$out" >&2; return 1; }
+            printf '%s\n' "$out"
+            # Workaround: rename the auto 'token_N' row so `zweb tokens/revoke`
+            # can use the device name. Plain-text name column, hash untouched.
+            autoname="$(printf '%s\n' "$out" | sed -n 's/^\([A-Za-z0-9_]*\): .*/\1/p' | tail -n1)"
+            db="$(_zweb_tokendb)"
+            if [ -n "$autoname" ] && [ -f "$db" ] && command -v sqlite3 >/dev/null 2>&1 \
+               && sqlite3 "$db" "UPDATE tokens SET name='$arg' WHERE name='$autoname';" 2>/dev/null; then
+                echo "zweb: token renamed $autoname -> $arg"
+            else
+                echo "zweb: could not rename; token is named '$autoname' (zellij#4976)" >&2
+            fi ;;
+        tokens) zellij web --list-tokens ;;
+        revoke)
+            [ -n "$arg" ] || { echo "usage: zweb revoke NAME (zweb tokens lists them)" >&2; return 2; }
+            zellij web --revoke-token "$arg" ;;
+        up)
+            # Proxy 443 -> localhost:8082. Needs MagicDNS + HTTPS Certificates
+            # enabled for the tailnet (admin console -> DNS); serve config is
+            # stored by tailscaled, so this survives reboots.
+            if ! _tsbin serve --bg 8082; then
+                echo "zweb: tailscale serve failed. Check: tailscale is up ('tailscale status'), and" >&2
+                echo "      MagicDNS + HTTPS Certificates are enabled (admin console -> DNS)." >&2
+                return 1
+            fi
+            # Self.DNSName is the first DNSName in the status JSON; strip the root dot.
+            fqdn="$(_tsbin status --json 2>/dev/null | sed -n 's/.*"DNSName": *"\([^"]*\)".*/\1/p' | head -n1)"
+            fqdn="${fqdn%.}"
+            [ -n "$fqdn" ] && echo "zweb: serving at https://$fqdn/  (attach: https://$fqdn/<session-name>)"
+            # Mobile switcher + on-screen key row (config/zellij/zweb-switcher.py),
+            # mounted at /s on the same origin so it shares the login cookie.
+            # The ( ... & ) subshell keeps job-control quiet. Note the /s
+            # mount survives reboots but this process doesn't — re-run
+            # `zweb up` after one.
+            if command -v python3 >/dev/null 2>&1 && [ -f "$HOME/.config/zellij/zweb-switcher.py" ]; then
+                [ -n "$(_zweb_switcher_pid)" ] \
+                    || ( nohup python3 "$HOME/.config/zellij/zweb-switcher.py" >/dev/null 2>&1 & \
+                         echo $! > "$(_zweb_pidfile)" )
+                if _tsbin serve --bg --set-path=/s http://127.0.0.1:8083 >/dev/null 2>&1; then
+                    echo "zweb: mobile switcher at https://${fqdn:-HOST}/s"
+                else
+                    echo "zweb: could not mount /s (tailscale serve --set-path failed)" >&2
+                fi
+            fi ;;
+        down)
+            arg="$(_zweb_switcher_pid)" && kill "$arg" 2>/dev/null
+            rm -f "$(_zweb_pidfile)"
+            # Remove only the two mounts `zweb up` created — `serve reset`
+            # would wipe every serve mount on the host, ours or not.
+            _tsbin serve --https=443 --set-path=/s off 2>/dev/null
+            _tsbin serve --https=443 off \
+                && echo "zweb: tailnet proxy removed (server still on 127.0.0.1:8082)" ;;
+        help|-h|--help) echo "usage: zweb [status|start|stop|token NAME|rotoken NAME|tokens|revoke NAME|up|down]  (see comment above zweb in ~/.aliases)" ;;
+        *) echo "usage: zweb [status|start|stop|token NAME|rotoken NAME|tokens|revoke NAME|up|down]" >&2; return 2 ;;
+    esac
+}
+
+# glow 2.x word-wraps at ~80 columns no matter how narrow the terminal is,
+# so on a mobile-width pane every line hard-wraps mid-word. Wrap at the real pane width instead, keeping 80 as the
+# cap so wide panes read like glow's default. Note: like any terminal output,
+# an already-rendered doc doesn't re-wrap when the pane later changes width
+# (rotation, a different-sized client attaching) — re-run glow after.
+glow() {
+    # stty reads the terminal via stdin, which command substitution keeps —
+    # tput cols would probe stdout, a pipe inside $(), and silently report 80.
+    local w; w="$(stty size 2>/dev/null | awk '{print $2}')"
+    [ -n "$w" ] || w="${COLUMNS:-80}"
+    # glow pads a few chars past the wrap width, so leave headroom on narrow
+    # panes; wide panes cap at glow's classic 80.
+    if [ "$w" -gt 80 ]; then w=80; elif [ "$w" -gt 12 ]; then w=$((w - 4)); fi
+    command glow -w "$w" "$@"
+}
 
 # venv
 alias venv="source .venv/bin/activate"

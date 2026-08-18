@@ -259,6 +259,7 @@ status bar, and session persistence (survives SSH disconnects — detach with
   | shell   | a single terminal pane — **the default**, so bare `z` opens it; `Alt+t` adds more tabs | `z`  |
   | nvim    | full-screen nvim + a small floating terminal, bottom-right (`Alt+f` shows/hides it; pin it with `Ctrl p` `i` to keep it visible while you edit) | `zv` |
   | wide    | nvim editor left, terminal right            | `zw` |
+  | mobile  | one pane + a 1-line tab bar (which shows the working dir), no status bar — sized for a portrait mobile screen (see [Zellij in the browser](#zellij-in-the-browser)) | `zm` |
 
   Open one in a new tab from a running session: `zellij action new-tab --layout wide`.
 - **File manager:** browse with yazi *inside* nvim (`<Space>y`) — pick a file and
@@ -324,6 +325,58 @@ one/all (they stay resurrectable), `zd`/`zda` delete one/all for good. For a
 custom-named session use `zellij -s NAME`; `Ctrl+o` then `w` opens an
 interactive manager to switch/rename/kill. (Aliases are interactive-only; for a
 remote peek without attaching, use the binary: `ssh a5090 zellij ls`.)
+
+### Zellij in the browser
+
+Zellij ships a web server (`web_server true` in `config.kdl` keeps it running
+whenever a session is up) that serves sessions to any browser — no terminal
+app needed, which makes it the low-friction way to reach a running Claude
+session from a mobile device. It listens on **127.0.0.1:8082 only**;
+`web_sharing "on"` lets normally-started (terminal) sessions be attached from
+the browser too. Everything is managed with **`zweb`** (see `aliases`):
+
+1. **Mint a token per device** (shown once, revocable): `zweb token mobile`.
+   Each browser logs in once; `zweb tokens` / `zweb revoke NAME` manage them.
+   `zweb rotoken NAME` makes a watch-only token.
+2. **Local test:** with any session running, open
+   `http://127.0.0.1:8082/<session-name>`.
+3. **Publish on the tailnet:** `zweb up` — wraps `tailscale serve` so the
+   server appears at `https://<machine>.<tailnet>.ts.net` with real TLS
+   (needs MagicDNS + HTTPS Certificates enabled in the Tailscale admin
+   console; the serve config survives reboots). Nothing is exposed beyond
+   the tailnet. `zweb down` unpublishes; `zweb` shows both statuses.
+4. **On mobile:** open `https://HOST/<session-name>` — it attaches, or
+   resurrects an exited session by the same name. Bookmark per-session URLs;
+   **Add to Home Screen** gives a fullscreen app-like client.
+5. **Mobile switcher + keys:** `zweb up` also mounts a companion page at
+   `https://HOST/s` — a tap-to-open list of sessions, each opening with an
+   on-screen key row (esc, tab, sticky ctrl/alt, arrows, ^C) that mobile
+   keyboards lack. It's a tiny local server
+   ([`config/zellij/zweb-switcher.py`](config/zellij/zweb-switcher.py)) on the
+   same origin as the terminal, so the login cookie is shared; it works by
+   proxying only zellij's HTML shell (dropping the `X-Frame-Options: DENY`
+   that would forbid embedding it) while assets and websockets go straight
+   to zellij. One quirk: renaming a session from inside that view navigates
+   the frame to the unproxied page, which refuses to render — reopen it from
+   the switcher.
+
+Caveats: a browser stuck looping **"connection lost"** usually means that
+session isn't web-shared — sharing is fixed per session at creation, so
+sessions started *while `web_sharing` was off* — e.g. any session predating
+this config on a machine — refuse web clients without saying why. Opt a
+running session in once: `Ctrl o` then `s` opens the share plugin — start
+sharing there. Attaching also resizes a session to its **smallest** connected
+client, so mobile work is nicest in its own session — `zm [DIR]` starts one
+named `<dir>-mobile` with the mobile layout (single pane, 1-line dir bar, no
+status bar; the separate name keeps the layout and the small size from
+taking over your regular `<dir>` session). When you do peek
+at a desktop session from mobile, fullscreen the pane you care about
+(`Ctrl p` then `f`), and switch sessions with `Ctrl o` then `w`. After a
+reboot the server comes up with the first zellij session (or `zweb start`),
+but the `/s` switcher needs a fresh `zweb up` — its tailscale mount persists
+while its process does not, so `/s` 502s until then.
+For flaky cellular links, `mssh` + Blink is still the more resilient path —
+the web client reconnects rather than mosh-style riding out the drop.
 
 ## Yazi
 

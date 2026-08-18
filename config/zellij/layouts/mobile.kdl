@@ -1,0 +1,31 @@
+// ~/.config/zellij/layouts/mobile.kdl
+// Mobile-sized session: one full-height pane under a 1-line tab bar, no status
+// bar. A portrait mobile screen is only ~40-50 cols x ~35 rows, so every bar
+// row costs real estate — the status bar (2 rows) is dropped, and the zjtabs
+// line doubles as the "where am I" indicator, since ztab.sh names each tab
+// after its focused pane's working directory ("1: dotfiles").
+//
+// Launch with:  zellij --layout mobile   (alias: zm [DIR], which names the
+// session "<dir>-mobile") — typically on the remote box, then attach from the
+// mobile browser at https://HOST/<session> (see `zweb` in aliases). A layout
+// is baked in at session creation, so don't reuse a regular session's name —
+// its new_tab_template would go mobile-minimal for good. Attaching also
+// resizes a session to the smallest connected client, so keep mobile work in
+// its own session; when you do attach to a desktop session from mobile,
+// fullscreen the pane you care about (Ctrl+p, f). Session switcher: Ctrl+o, w.
+// Iteration idea: stacked panes (many panes, one visible) for multi-pane
+// mobile use.
+layout {
+    pane size=1 borderless=true {
+        plugin location="zjtabs"
+    }
+    pane
+
+    // New tabs (Alt+t) keep the same minimal frame.
+    new_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zjtabs"
+        }
+        pane
+    }
+}

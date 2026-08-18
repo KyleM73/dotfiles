@@ -102,6 +102,28 @@ session_serialization true
 // On the OS trying to close the window, detach rather than kill the session.
 on_force_close "detach"
 
+// Web client — attach to sessions from a browser (mobile or any device).
+// web_server makes zellij keep its built-in web server running whenever a
+// session starts; web_sharing "on" lets terminal-started sessions (the normal
+// flow) be attached from the browser too, not just browser-started ones.
+// The server binds 127.0.0.1:8082 ONLY — remote devices reach it through
+// `tailscale serve` (browser-trusted TLS at https://<machine>.<tailnet>.ts.net,
+// unreachable off-tailnet), and logging in requires a token minted with
+// `zweb token NAME` (see `zweb` in aliases for start/stop/tokens/up/down).
+// Idle cost is one localhost listener; terminal clients don't route through it.
+// Reboot caveat: the server comes up with the first zellij session, so start
+// one (or `zweb start`) before connecting from another device.
+web_server true
+web_sharing "on"
+
+// Browser-side rendering. The font renders on the CONNECTING device and the
+// web client's CSP blocks external fonts, so this is a fallback stack: Hack
+// Nerd Font Mono matches Ghostty on machines that have it installed; devices
+// without it (e.g. mobile) fall back to Menlo / their default monospace.
+web_client {
+    font "Hack Nerd Font Mono, Menlo, monospace"
+}
+
 // Let Ctrl+h reach Neovim in normal mode: nvim uses Ctrl+h/j/k/l to move between
 // its splits, but zellij binds Ctrl+h to enter "Move" mode by default, which
 // would shadow it. (Ctrl+j/k/l aren't bound by zellij, so they already pass

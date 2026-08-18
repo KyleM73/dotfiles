@@ -166,7 +166,7 @@ if command -v fzf >/dev/null 2>&1 && [ "$SHELL_TYPE" != "unknown" ]; then
     eval "$(fzf --"$SHELL_TYPE" 2>/dev/null)"
 fi
 
-# Tab completion for the zellij helpers (see ~/.aliases): z/zv/zw complete
+# Tab completion for the zellij helpers (see ~/.aliases): z/zv/zw/zm complete
 # directories; za/zk/zd complete session names; zssh completes SSH hosts then that
 # host's sessions. Matching is substring + case-insensitive, so `files` completes
 # `~/projects/dotfiles` and `bear` completes `great-bear`.
@@ -235,7 +235,7 @@ if command -v zellij >/dev/null 2>&1; then
                 (( ${#dirs} )) && compadd -Q -S '' -M 'm:{a-zA-Z}={A-Za-z} l:|=* r:|=*' -- ${^dirs}/
             fi
         }
-        compdef _z_complete z zv zw 2>/dev/null
+        compdef _z_complete z zv zw zm 2>/dev/null
     elif [ "$SHELL_TYPE" = "bash" ]; then
         # grep -iF gives case-insensitive substring matching (bear -> great-bear).
         _zj_sessions() {
@@ -258,7 +258,7 @@ if command -v zellij >/dev/null 2>&1; then
             COMPREPLY=($(_z_candidates "${COMP_WORDS[COMP_CWORD]}" | sed 's|$|/|'))
             [ ${#COMPREPLY[@]} -gt 0 ] && compopt -o nospace 2>/dev/null
         }
-        complete -F _z_complete_bash z zv zw
+        complete -F _z_complete_bash z zv zw zm
     fi
 
     # Name a freshly opened zellij tab after its directory (last two path
