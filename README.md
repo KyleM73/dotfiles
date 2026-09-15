@@ -376,21 +376,34 @@ session from a mobile device. It listens on **127.0.0.1:8082 only**;
 `web_sharing "on"` lets normally-started (terminal) sessions be attached from
 the browser too. Everything is managed with **`zweb`** (see `aliases`):
 
-1. **Mint a token per device** (shown once, revocable): `zweb token mobile`.
-   Each browser logs in once; `zweb tokens` / `zweb revoke NAME` manage them.
-   `zweb rotoken NAME` makes a watch-only token.
+1. **Mint a login token** on the machine you want to reach, named for the
+   device you'll use it from: `zweb token mobile` (or `ipad`, …). It's shown
+   **once** — copy it then; it can't be retrieved later, only revoked with
+   `zweb revoke NAME`. `zweb tokens` lists them; `zweb rotoken NAME` makes a
+   watch-only token. Tokens are **per-machine** — the store is local to each
+   host, so a token minted on the Mac only logs into the Mac's server; the
+   Linux box needs its own `zweb token`. The command itself is identical on
+   macOS and Linux (same `zweb` function); only the on-disk token store path
+   differs, which `zweb` handles for you.
 2. **Local test:** with any session running, open
    `http://127.0.0.1:8082/<session-name>`.
 3. **Publish on the tailnet:** `zweb up` — wraps `tailscale serve` so the
    server appears at `https://<machine>.<tailnet>.ts.net` with real TLS
    (needs MagicDNS + HTTPS Certificates enabled in the Tailscale admin
    console; the serve config survives reboots). Nothing is exposed beyond
-   the tailnet. `zweb down` unpublishes; `zweb` shows both statuses.
-4. **On mobile:** open `https://HOST/<session-name>` — it attaches, or
-   resurrects an exited session by the same name. Bookmark per-session URLs;
-   **Add to Home Screen** gives a fullscreen app-like client.
+   the tailnet. `zweb down` unpublishes; `zweb` shows both statuses. On
+   **Linux**, `tailscale serve` also needs a one-time grant to run without
+   root: `sudo tailscale set --operator=$USER`. (To re-run `zweb up`
+   automatically after a reboot, see `zweb enable` under the caveats below.)
+4. **Log in from the switcher** (below) — open `https://HOST/s`, enter the
+   token once, and you land on the session list. (You can also open a
+   session directly at `https://HOST/<session-name>`, which attaches or
+   resurrects a session by that name; the login prompt is the same.) Either
+   way it's **one login per browser** — bookmark `https://HOST/s`, and **Add
+   to Home Screen** gives a fullscreen app-like client.
 5. **Mobile switcher + keys:** `zweb up` also mounts a companion page at
-   `https://HOST/s` — a tap-to-open list of sessions, each opening with an
+   `https://HOST/s` — its unauthenticated view is a token login form, and
+   once in it's a tap-to-open list of sessions, each opening with an
    on-screen key row (esc, tab, sticky ctrl/alt, arrows, ^C) that mobile
    keyboards lack. It's a tiny local server
    ([`config/zellij/zweb-switcher.py`](config/zellij/zweb-switcher.py)) on the
