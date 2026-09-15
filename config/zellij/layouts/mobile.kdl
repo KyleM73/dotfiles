@@ -7,7 +7,7 @@
 //
 // Launch with:  zellij --layout mobile   (alias: zm [DIR], which names the
 // session "<dir>-mobile") — typically on the remote box, then attach from the
-// mobile browser at https://HOST/<session> (see `zweb` in aliases). A layout
+// mobile browser at https://HOST/<session> (see `zweb` / config/zellij/zweb.sh). A layout
 // is baked in at session creation, so don't reuse a regular session's name —
 // its new_tab_template would go mobile-minimal for good. Attaching also
 // resizes a session to the smallest connected client, so keep mobile work in

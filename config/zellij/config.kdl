@@ -109,7 +109,7 @@ on_force_close "detach"
 // The server binds 127.0.0.1:8082 ONLY — remote devices reach it through
 // `tailscale serve` (browser-trusted TLS at https://<machine>.<tailnet>.ts.net,
 // unreachable off-tailnet), and logging in requires a token minted with
-// `zweb token NAME` (see `zweb` in aliases for start/stop/tokens/up/down).
+// `zweb token NAME` (see config/zellij/zweb.sh for start/stop/tokens/up/down).
 // Idle cost is one localhost listener; terminal clients don't route through it.
 // Reboot caveat: the server comes up with the first zellij session, so start
 // one (or `zweb start`) before connecting from another device.

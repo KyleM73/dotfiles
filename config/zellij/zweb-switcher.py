@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # zweb-switcher.py — mobile companion page for zellij's web client: a session
 # switcher plus an on-screen key row (Esc/Tab/Ctrl/Alt/arrows/^C) that mobile
-# browser keyboards lack. Started/stopped by `zweb up` / `zweb down` (aliases),
+# browser keyboards lack. Started/stopped by `zweb up` / `zweb down` (zweb.sh),
 # which also mounts it on the tailnet at https://HOST/s via `tailscale serve`
 # — same origin as the terminal, so the zellij login cookie is shared.
 #

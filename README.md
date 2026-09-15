@@ -383,7 +383,9 @@ whenever a session is up) that serves sessions to any browser — no terminal
 app needed, which makes it the low-friction way to reach a running Claude
 session from a mobile device. It listens on **127.0.0.1:8082 only**;
 `web_sharing "on"` lets normally-started (terminal) sessions be attached from
-the browser too. Everything is managed with **`zweb`** (see `aliases`):
+the browser too. Everything is managed with **`zweb`**
+([`config/zellij/zweb.sh`](config/zellij/zweb.sh), wrapped by a one-line
+function in `aliases`):
 
 1. **Mint a login token** on the machine you want to reach, named for the
    device you'll use it from: `zweb token mobile` (or `ipad`, …). It's shown
