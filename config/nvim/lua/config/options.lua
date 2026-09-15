@@ -32,6 +32,7 @@ opt.splitbelow = true    -- horizontal splits open below
 opt.title = true         -- set the terminal title to the file name
 opt.undofile = true      -- persistent undo across sessions
 opt.confirm = true       -- prompt to save instead of erroring on :q with changes
+opt.exrc = true          -- read per-project .nvim.lua (trust-prompted once per file)
 opt.updatetime = 250     -- snappier CursorHold (blame, diagnostics) than default 4s
 opt.timeoutlen = 400     -- faster which-key popup (once enabled)
 

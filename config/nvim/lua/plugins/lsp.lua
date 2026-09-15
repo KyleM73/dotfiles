@@ -53,6 +53,16 @@ return {
       })
       vim.lsp.enable({ "ruff", "ty" })
 
+      -- LaTeX: texlab adds completion/references/rename alongside vimtex
+      -- (plugins/latex.lua). Gated on the binary so TeX-less machines don't
+      -- spawn a dead client. Project-specific env (TEXINPUTS/BIBINPUTS for a
+      -- shared style/bib dir) belongs in that project's .nvim.lua — read via
+      -- exrc (options.lua) — e.g.:
+      --   vim.lsp.config("texlab", { cmd_env = { TEXINPUTS = "../shared//:" } })
+      if vim.fn.executable("texlab") == 1 then
+        vim.lsp.enable("texlab")
+      end
+
       -- More languages: install the server on PATH and add it to the enable
       -- list. nvim-lspconfig ships the configs, so usually no vim.lsp.config
       -- block is needed:  vim.lsp.enable({ "lua_ls", "clangd", "rust_analyzer" })

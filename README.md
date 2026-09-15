@@ -279,6 +279,15 @@ jump to your running nvim. If you installed Skim by hand, either re-run
 Missing a style file? BasicTeX is minimal by design:
 `sudo tlmgr install <pkg>` (find the package with `tlmgr search --global --file <name>.sty`).
 
+Project-specific settings (e.g. `TEXINPUTS`/`BIBINPUTS` for a shared style/bib
+dir) live in that project's `.nvim.lua`, not here — `exrc` is enabled
+(`options.lua`), and nvim prompts once to trust each file:
+
+```lua
+-- <project>/.nvim.lua
+vim.lsp.config("texlab", { cmd_env = { TEXINPUTS = "../shared//:" } })
+```
+
 **Zero-plugin fallback** (works on any box with `latexmk`): run `latexmk -pvc`
 in a split pane inside the paper dir — same watch-and-rebuild loop, just
 without SyncTeX jumping and the quickfix list.

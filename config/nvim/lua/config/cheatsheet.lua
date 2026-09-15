@@ -45,6 +45,14 @@ M.sections = {
     "<leader>cd       line diagnostics (float)",
     "]d / [d          next / prev diagnostic",
   }},
+  { name = "LaTeX", lines = {
+    "<leader>ll       toggle compile-on-save (latexmk)",
+    "<leader>lv       forward search: jump Skim to cursor line",
+    "<leader>le       error list (auto-opens on errors only)",
+    "<leader>lk       stop compilation",
+    "<leader>lc       clean auxiliary files",
+    "Cmd+Shift+click  in Skim: jump nvim to that source line",
+  }},
   { name = "Complete", lines = {
     "Tab / Enter      accept the suggestion",
     "Up / Down        move the selection (C-n/C-p outside zellij)",

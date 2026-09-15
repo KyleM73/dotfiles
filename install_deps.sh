@@ -541,6 +541,70 @@ else
     echo "  ! uv unavailable; later run: uv tool install ruff && uv tool install ty"
 fi
 
+# ---- LaTeX (nvim's vimtex: latexmk compiler + Skim viewer + texlab LSP) ----
+# The nvim side lives in config/nvim/lua/plugins/latex.lua; this installs the
+# binaries and points Skim at nvim for SyncTeX inverse search (see README).
+echo
+echo "LaTeX (latexmk + Skim + texlab; used by nvim's vimtex):"
+if command -v latexmk >/dev/null 2>&1; then
+    echo "  ✓ latexmk     present"
+elif [ "$OS" = "Darwin" ] && [ "$PM" = "brew" ]; then
+    # BasicTeX = TeX Live's small scheme (~100 MB vs MacTeX's ~5 GB). It does
+    # NOT include latexmk, so pull that via tlmgr (needs sudo — TeX Live lives
+    # under /usr/local/texlive). Missing styles later: sudo tlmgr install <pkg>
+    echo "  → basictex    brew cask (+ latexmk via tlmgr)"
+    pm_install --cask basictex
+    if [ "$DRY_RUN" = "1" ] || { [ -x /Library/TeX/texbin/tlmgr ] && [ -t 0 ]; }; then
+        run sudo /Library/TeX/texbin/tlmgr update --self
+        run sudo /Library/TeX/texbin/tlmgr install latexmk
+    else
+        echo "  ! then run: sudo tlmgr update --self && sudo tlmgr install latexmk"
+    fi
+    echo "  * new shells pick up /Library/TeX/texbin via /etc/paths.d/TeX"
+else
+    case "$PM" in
+        apt-get) pm_install latexmk texlive-latex-extra ;;
+        dnf)     pm_install latexmk texlive-collection-latexextra ;;
+        pacman)  pm_install texlive-binextra texlive-latexextra ;;
+        *)       echo "  ! latexmk: install TeX Live + latexmk with your package manager" ;;
+    esac
+fi
+
+if [ "$OS" = "Darwin" ]; then
+    # Skim, not Preview: auto-reloads the PDF on every rebuild and speaks
+    # SyncTeX in both directions (PDF <-> source line jumps).
+    if [ -d "/Applications/Skim.app" ]; then
+        echo "  ✓ Skim        present"
+    elif [ "$PM" = "brew" ]; then
+        echo "  → Skim        brew cask"
+        pm_install --cask skim
+    else
+        echo "  ! Skim: https://skim-app.sourceforge.io"
+    fi
+    # Configure Skim (idempotent): reload the PDF without asking when latexmk
+    # rewrites it, and inverse search — Cmd+Shift+click in Skim jumps nvim to
+    # that source line. Full nvim path: Skim launches from Finder and never
+    # sees brew's PATH. (Domain used directly; `defaults -app` needs the app.)
+    if [ -d "/Applications/Skim.app" ] || [ "$DRY_RUN" = "1" ]; then
+        SKIM_DOMAIN="net.sourceforge.skim-app.skim"
+        NVIM_BIN="$(command -v nvim || echo /opt/homebrew/bin/nvim)"
+        run defaults write "$SKIM_DOMAIN" SKAutoReloadFileUpdate -bool true
+        run defaults write "$SKIM_DOMAIN" SKTeXEditorPreset -string "Custom"
+        run defaults write "$SKIM_DOMAIN" SKTeXEditorCommand -string "$NVIM_BIN"
+        run defaults write "$SKIM_DOMAIN" SKTeXEditorArguments -string "--headless -c \"VimtexInverseSearch %line '%file'\""
+    fi
+fi
+
+# texlab LSP — completion/references/rename in nvim, alongside vimtex.
+if command -v texlab >/dev/null 2>&1; then
+    echo "  ✓ texlab      present"
+elif [ "$PM" = "brew" ]; then
+    printf '  → %-10s brew install\n' texlab
+    pm_install texlab
+else
+    echo "  ! texlab (optional LSP): https://github.com/latex-lsp/texlab/releases"
+fi
+
 # ---- optional: richer yazi previews + navigation (best-effort) -------------
 echo
 echo "Optional preview/navigation tools (best-effort):"
