@@ -218,10 +218,8 @@ mssh() { command -v mosh >/dev/null 2>&1 || { echo "mssh: mosh not installed (ru
 #                      mobile switcher + key-row page at https://HOST/s
 #   zweb enable|disable  run `zweb up` at login (launchd/systemd), after
 #                        waiting for Tailscale to come online
-# Switcher process tracking. A pgrep -f pattern is a trap here: it can match
-# an editor with the file open, and macOS framework Python rewrites argv[0]
-# to .../Python.app/.../Python so a python3-anchored pattern never matches.
-# A pidfile, re-checked against the pid's live command line, is unambiguous.
+# The switcher's pidfile, and its pid when the process is alive (verified by
+# matching zweb-switcher.py in the pid's command line).
 _zweb_pidfile() { echo "${TMPDIR:-/tmp}/zweb-switcher.$(id -u).pid"; }
 _zweb_switcher_pid() {  # print the running switcher's pid, else fail
     local pf pid; pf="$(_zweb_pidfile)"
@@ -238,8 +236,8 @@ _tsbin() {  # tailscale CLI: on PATH (Linux) or inside the macOS app bundle
 _zweb_tailscale_online() {  # 0 only when the tailscale backend is up (Running)
     _tsbin status --json 2>/dev/null | grep -q '"BackendState": *"Running"'
 }
-# Zellij's token store: a small sqlite db (name + token hash per row). Only
-# used to work around zellij-org/zellij#4976 below.
+# Zellij's token store: a small sqlite db (name + token hash per row). Read
+# only by the token-rename workaround for zellij-org/zellij#4976 below.
 _zweb_tokendb() {
     case "$(uname -s)" in
         Darwin) echo "$HOME/Library/Application Support/org.Zellij-Contributors.Zellij/tokens.db" ;;
@@ -301,8 +299,9 @@ zweb() {
             # enabled for the tailnet (admin console -> DNS); serve config is
             # stored by tailscaled, so this survives reboots.
             if ! _tsbin serve --bg 8082; then
-                echo "zweb: tailscale serve failed. Check: MagicDNS + HTTPS" >&2
-                echo "      Certificates are enabled (admin console -> DNS)." >&2
+                echo "zweb: tailscale serve failed. Check both:" >&2
+                echo "  - MagicDNS + HTTPS Certificates enabled (admin console -> DNS)" >&2
+                echo "  - on Linux, serve needs a one-time grant: sudo tailscale set --operator=\$USER" >&2
                 return 1
             fi
             # Self.DNSName is the first DNSName in the status JSON; strip the root dot.
@@ -311,13 +310,9 @@ zweb() {
             [ -n "$fqdn" ] && echo "zweb: serving at https://$fqdn/  (attach: https://$fqdn/<session-name>)"
             # Mobile switcher + on-screen key row (config/zellij/zweb-switcher.py),
             # mounted at /s on the same origin so it shares the login cookie.
-            # The ( ... & ) subshell keeps job-control quiet. Note the /s
-            # mount survives reboots but this process doesn't — re-run
-            # `zweb up` after one.
             if command -v python3 >/dev/null 2>&1 && [ -f "$HOME/.config/zellij/zweb-switcher.py" ]; then
-                # Given the pidfile arg, the switcher daemonizes itself and
-                # writes that pidfile once bound — so it survives this shell (or
-                # a one-shot boot job) exiting, and the recorded pid is real.
+                # Start it unless already running. The pidfile arg makes the
+                # switcher daemonize and record its pid there.
                 [ -n "$(_zweb_switcher_pid)" ] \
                     || python3 "$HOME/.config/zellij/zweb-switcher.py" "$(_zweb_pidfile)" >/dev/null 2>&1
                 if _tsbin serve --bg --set-path=/s http://127.0.0.1:8083 >/dev/null 2>&1; then
@@ -329,8 +324,8 @@ zweb() {
         down)
             arg="$(_zweb_switcher_pid)" && kill "$arg" 2>/dev/null
             rm -f "$(_zweb_pidfile)"
-            # Remove only the two mounts `zweb up` created — `serve reset`
-            # would wipe every serve mount on the host, ours or not.
+            # Turn off only the two mounts `zweb up` created (not `serve
+            # reset`, which clears every mount on the host).
             _tsbin serve --https=443 --set-path=/s off 2>/dev/null
             _tsbin serve --https=443 off \
                 && echo "zweb: tailnet proxy removed (server still on 127.0.0.1:8082)" ;;

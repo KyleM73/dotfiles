@@ -143,18 +143,16 @@ def wrapper_html(name):
       send(key, +kc, !!b.dataset.ctrl);
     }}
     document.querySelectorAll("#keys button").forEach(b => {{
-      // pointerdown preventDefault keeps a tap from moving focus (which
-      // would summon/dismiss the mobile keyboard); the action fires on
-      // pointerup. click is only a fallback for non-pointer-event browsers
-      // (both would double-fire otherwise).
+      // Tap fires on pointerup; pointerdown's preventDefault keeps focus off
+      // the buttons so the mobile keyboard stays put. click is the fallback
+      // when PointerEvent is unavailable.
       b.addEventListener("pointerdown", e => e.preventDefault());
       b.addEventListener("pointerup", e => {{ e.preventDefault(); activate(b); }});
       b.addEventListener("click", e => {{ e.preventDefault(); if (!window.PointerEvent) activate(b); }});
     }});
-    // Mobile keyboards overlay the layout viewport without resizing it, which
-    // would bury the key row. Track the visual viewport instead: size the
-    // page to it, so the terminal shrinks and the key row sits right above
-    // the keyboard.
+    // A mobile keyboard overlays the viewport without resizing it. Size the
+    // page to the visual viewport so the terminal shrinks and the key row
+    // stays above the keyboard.
     const vv = window.visualViewport;
     if (vv) {{
       const fit = () => {{ document.body.style.height = vv.height + "px"; scrollTo(0, 0); }};
@@ -237,10 +235,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
 def daemonize():
-    # Double-fork + setsid so the switcher fully detaches into its own session.
-    # Without this, launchd/systemd reap it as a child when the one-shot boot
-    # job that started it exits (macOS has no setsid binary, so do it here).
-    # The already-bound listening socket survives the forks.
+    # Detach into a new session: double-fork, setsid, redirect std fds to
+    # /dev/null. The already-bound listening socket is kept across the forks.
     if os.fork() > 0:
         os._exit(0)
     os.setsid()
@@ -251,16 +247,14 @@ def daemonize():
         os.dup2(devnull, fd)
 
 def write_pidfile(path):
-    # Record our own pid once the port is bound: whoever wins the bind is the
-    # real switcher, so `zweb` reads an authoritative pidfile no matter how this
-    # was launched. Capturing $! in the shell instead recorded the wrong pid.
+    # Write this process's pid, and remove the file on exit.
     with open(path, "w") as f:
         f.write(str(os.getpid()))
     atexit.register(lambda: os.path.exists(path) and os.remove(path))
 
 if __name__ == "__main__":
-    # Bind first so an "address already in use" (a second start) fails loudly
-    # before we detach. A pidfile arg means "run in the background".
+    # Bind before any detach so "address already in use" surfaces on stderr.
+    # A pidfile arg runs the switcher in the background under that pidfile.
     server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     if len(sys.argv) > 1:
         daemonize()
