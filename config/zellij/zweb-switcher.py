@@ -174,11 +174,43 @@ def wrapper_html(name):
     }});
   </script></body></html>"""
 
+# Token login form. It posts to /command/login (zellij's endpoint, reached
+# through the sibling / mount on this same origin); the cookie zellij sets is
+# Path=/, so it then covers /s and the session list loads.
 LOGIN_HTML = f"""<!doctype html><html><head><title>zellij sessions</title>{STYLE}
-  <style> p {{ padding: 16px; line-height: 1.5; }} a {{ color: #7fdbca; }} </style></head>
-  <body><p>Not logged in. Open one of your session bookmarks
-  (<code>https://HOST/&lt;session&gt;</code>), authenticate with your token,
-  then come back here.</p></body></html>"""
+  <style>
+    form {{ max-width: 22rem; margin: 12vh auto 0; padding: 0 20px; }}
+    h1 {{ font-size: 18px; color: #7fdbca; margin-bottom: 16px; }}
+    #tok {{ width: 100%; padding: 12px; font: 15px ui-monospace, monospace;
+      background: #1c1c1c; color: #ddd; border: 1px solid #333; border-radius: 6px; }}
+    label {{ display: flex; align-items: center; gap: 8px; margin: 12px 0; color: #aaa; }}
+    button {{ width: 100%; padding: 12px; font-size: 15px; font-weight: 600;
+      background: #7fdbca; color: #000; border: 0; border-radius: 6px; }}
+    #err {{ color: #e88; min-height: 1.2em; margin-top: 10px; font-size: 14px; }}
+  </style></head>
+  <body><form id="f" autocomplete="off">
+    <h1>zellij sessions</h1>
+    <input id="tok" type="password" placeholder="Login token" autofocus>
+    <label><input id="rem" type="checkbox" checked> Remember me on this device</label>
+    <button type="submit">Log in</button>
+    <div id="err"></div>
+  </form>
+  <script>
+    document.getElementById("f").addEventListener("submit", async e => {{
+      e.preventDefault();
+      const err = document.getElementById("err"); err.textContent = "";
+      try {{
+        const r = await fetch("/command/login", {{
+          method: "POST", credentials: "include",
+          headers: {{ "Content-Type": "application/json" }},
+          body: JSON.stringify({{ auth_token: document.getElementById("tok").value,
+                                 remember_me: document.getElementById("rem").checked }}),
+        }});
+        if (r.ok) location.href = "/s/";
+        else err.textContent = r.status === 401 ? "Unauthorized or revoked token." : "Error " + r.status;
+      }} catch (_) {{ err.textContent = "Could not reach the server."; }}
+    }});
+  </script></body></html>"""
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
