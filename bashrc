@@ -108,6 +108,7 @@ if [ "$SHELL_TYPE" = "bash" ]; then
     HISTCONTROL=ignoreboth      # ignore duplicate and space-prefixed commands
     shopt -s histappend         # append to history instead of overwriting
 elif [ "$SHELL_TYPE" = "zsh" ]; then
+    HISTSIZE=20000              # >= SAVEHIST, so the whole saved file loads
     HISTFILE="$HOME/.zsh_history"
     SAVEHIST=20000
     setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE

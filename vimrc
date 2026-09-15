@@ -69,7 +69,6 @@ set autoindent        " Enable automatic indentation
 set smartindent       " Enable smart indentation
 set smarttab          " Tab inserts 'shiftwidth' spaces in insert mode
 " set wrap              " Enable text wrapping
-set lbr               " Break long lines at 'breakat' characters
 set tabstop=4         " Number of spaces in a tab
 set linebreak         " Wrap lines at word boundaries rather than mid-word
 
@@ -100,7 +99,7 @@ set showmatch         " Highlight matching parentheses/brackets
 set history=1000      " Keep 1000 commands in history
 
 " Autocompletion settings
-set complete-=i       " Remove certain options from completion (e.g., ignore case)
+set complete-=i       " Don't scan included files for completion (slow)
 set showcmd           " Display incomplete commands in the status line
 set wildmenu          " Enable enhanced command-line completion
 set wildmode=list:longest  " Command-line completion: longest common match, then list
