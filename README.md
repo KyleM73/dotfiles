@@ -187,6 +187,7 @@ no keymaps). Flip it back and restart nvim to re-install.
 | fzf-lua           | `plugins/finder.lua`     | `Cmd-P` + project search            |
 | LSP (ruff + ty)   | `plugins/lsp.lua`        | IntelliSense for Python             |
 | blink.cmp         | `plugins/lsp.lua`        | Autocomplete popup                  |
+| vimtex            | `plugins/latex.lua`      | LaTeX compile-on-save + PDF preview |
 | vscode.nvim       | `plugins/ui.lua`         | Theme (VS Code Dark Modern look)    |
 | lualine           | `plugins/ui.lua`         | Status bar                          |
 | indent-blankline  | `plugins/ui.lua`         | Indent guides                       |
@@ -227,6 +228,7 @@ Key mappings (leader = `Space`):
 | `<Space>xx`            | Problems panel — all diagnostics (Trouble)|
 | `]t` / `[t`            | Next / previous TODO comment             |
 | `<Space>qs` / `<Space>ql` | Restore session (this dir / last)     |
+| `<Space>ll` / `lv` / `le` | LaTeX: compile-on-save / view / errors (see [LaTeX](#latex-vimtex--latexmk--skim)) |
 
 **Python LSP uses the Astral stack** (`ruff` for lint/format, `ty` for types) —
 all Rust, no Node/pyright. `install_deps.sh` installs both (manually:
@@ -241,6 +243,45 @@ clipboard is used.
 **Reproducible versions:** after the first launch, commit the generated
 `config/nvim/lazy-lock.json` to pin exact plugin versions across machines
 (`:Lazy restore` re-pins to it).
+
+### LaTeX (vimtex + latexmk + Skim)
+
+`plugins/latex.lua` sets up [vimtex](https://github.com/lervag/vimtex), which
+wraps `latexmk` in continuous-compile mode and respects a per-project
+`.latexmkrc` (e.g. `$out_dir = 'build'`), so `build/main.pdf` just works.
+`install_deps.sh` installs the rest on macOS: BasicTeX (TeX Live's ~100 MB
+scheme; `latexmk` added via `tlmgr`), [Skim](https://skim-app.sourceforge.io)
+(unlike Preview it auto-reloads the PDF on every rebuild and speaks SyncTeX in
+both directions — the script configures both via `defaults write`), and the
+optional `texlab` LSP for completion/references (`plugins/lsp.lua` enables it
+only when the binary is present).
+
+**Workflow:** open `main.tex`, hit `<Space>ll` once — latexmk now recompiles
+on every save (saves to `\input` files like TikZ figures trigger rebuilds too)
+and Skim refreshes the PDF in place. For side-by-side writing, snap the
+terminal to the left half and Skim to the right (macOS window tiling, or
+Rectangle/Raycast).
+
+| Mapping           | Action                                                |
+| ----------------- | ----------------------------------------------------- |
+| `<Space>ll`       | Toggle continuous compile (`latexmk -pvc` under the hood) |
+| `<Space>lv`       | Forward search — jump Skim to the line under the cursor |
+| `<Space>le`       | Show the error list (auto-opens on errors, not warnings) |
+| `<Space>lk`       | Stop compilation                                      |
+| `<Space>lc`       | Clean auxiliary files                                 |
+| `Cmd+Shift+click` | (in Skim) inverse search — jump nvim to that source line |
+
+Inverse search works because `install_deps.sh` sets Skim's Sync preferences to
+run `nvim --headless -c "VimtexInverseSearch %line '%file'"`, which relays the
+jump to your running nvim. If you installed Skim by hand, either re-run
+`install_deps.sh` or set Skim → Settings → Sync to those values yourself.
+
+Missing a style file? BasicTeX is minimal by design:
+`sudo tlmgr install <pkg>` (find the package with `tlmgr search --global --file <name>.sty`).
+
+**Zero-plugin fallback** (works on any box with `latexmk`): run `latexmk -pvc`
+in a split pane inside the paper dir — same watch-and-rebuild loop, just
+without SyncTeX jumping and the quickfix list.
 
 ## Zellij
 
@@ -374,7 +415,9 @@ at a desktop session from mobile, fullscreen the pane you care about
 (`Ctrl p` then `f`), and switch sessions with `Ctrl o` then `w`. After a
 reboot the server comes up with the first zellij session (or `zweb start`),
 but the `/s` switcher needs a fresh `zweb up` — its tailscale mount persists
-while its process does not, so `/s` 502s until then.
+while its process does not, so `/s` 502s until then. Run **`zweb enable`**
+once per machine to have login automatically run `zweb up` (it waits for
+Tailscale to come online first); `zweb disable` undoes it.
 For flaky cellular links, `mssh` + Blink is still the more resilient path —
 the web client reconnects rather than mosh-style riding out the drop.
 

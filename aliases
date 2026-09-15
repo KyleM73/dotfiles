@@ -216,6 +216,8 @@ mssh() { command -v mosh >/dev/null 2>&1 || { echo "mssh: mosh not installed (ru
 #   zweb revoke NAME   revoke a token (kills its devices' logins)
 #   zweb up|down       publish / unpublish on the tailnet; up also starts the
 #                      mobile switcher + key-row page at https://HOST/s
+#   zweb enable|disable  run `zweb up` at login (launchd/systemd), after
+#                        waiting for Tailscale to come online
 # Switcher process tracking. A pgrep -f pattern is a trap here: it can match
 # an editor with the file open, and macOS framework Python rewrites argv[0]
 # to .../Python.app/.../Python so a python3-anchored pattern never matches.
@@ -232,6 +234,9 @@ _tsbin() {  # tailscale CLI: on PATH (Linux) or inside the macOS app bundle
     elif [ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]; then
         "/Applications/Tailscale.app/Contents/MacOS/Tailscale" "$@"
     else echo "zweb: tailscale CLI not found (install Tailscale)" >&2; return 127; fi
+}
+_zweb_tailscale_online() {  # 0 only when the tailscale backend is up (Running)
+    _tsbin status --json 2>/dev/null | grep -q '"BackendState": *"Running"'
 }
 # Zellij's token store: a small sqlite db (name + token hash per row). Only
 # used to work around zellij-org/zellij#4976 below.
@@ -280,12 +285,24 @@ zweb() {
             [ -n "$arg" ] || { echo "usage: zweb revoke NAME (zweb tokens lists them)" >&2; return 2; }
             zellij web --revoke-token "$arg" ;;
         up)
+            # Publishing needs Tailscale online (for the proxy + cert). Gate on
+            # it up front so boot autostart and a manual run both fail loudly
+            # rather than half-mounting.
+            if ! _zweb_tailscale_online; then
+                echo "zweb: Tailscale is not online ('tailscale status') — not publishing" >&2
+                return 1
+            fi
+            # Ensure the web server is up. web_server true starts it with the
+            # first session, but at boot there is none yet, so start it here.
+            # `zellij web --status` exits 0 even when offline, so match its
+            # output rather than its exit code.
+            zellij web --status 2>&1 | grep -qi offline && zellij web -d >/dev/null 2>&1
             # Proxy 443 -> localhost:8082. Needs MagicDNS + HTTPS Certificates
             # enabled for the tailnet (admin console -> DNS); serve config is
             # stored by tailscaled, so this survives reboots.
             if ! _tsbin serve --bg 8082; then
-                echo "zweb: tailscale serve failed. Check: tailscale is up ('tailscale status'), and" >&2
-                echo "      MagicDNS + HTTPS Certificates are enabled (admin console -> DNS)." >&2
+                echo "zweb: tailscale serve failed. Check: MagicDNS + HTTPS" >&2
+                echo "      Certificates are enabled (admin console -> DNS)." >&2
                 return 1
             fi
             # Self.DNSName is the first DNSName in the status JSON; strip the root dot.
@@ -298,9 +315,11 @@ zweb() {
             # mount survives reboots but this process doesn't — re-run
             # `zweb up` after one.
             if command -v python3 >/dev/null 2>&1 && [ -f "$HOME/.config/zellij/zweb-switcher.py" ]; then
+                # Given the pidfile arg, the switcher daemonizes itself and
+                # writes that pidfile once bound — so it survives this shell (or
+                # a one-shot boot job) exiting, and the recorded pid is real.
                 [ -n "$(_zweb_switcher_pid)" ] \
-                    || ( nohup python3 "$HOME/.config/zellij/zweb-switcher.py" >/dev/null 2>&1 & \
-                         echo $! > "$(_zweb_pidfile)" )
+                    || python3 "$HOME/.config/zellij/zweb-switcher.py" "$(_zweb_pidfile)" >/dev/null 2>&1
                 if _tsbin serve --bg --set-path=/s http://127.0.0.1:8083 >/dev/null 2>&1; then
                     echo "zweb: mobile switcher at https://${fqdn:-HOST}/s"
                 else
@@ -315,8 +334,63 @@ zweb() {
             _tsbin serve --https=443 --set-path=/s off 2>/dev/null
             _tsbin serve --https=443 off \
                 && echo "zweb: tailnet proxy removed (server still on 127.0.0.1:8082)" ;;
-        help|-h|--help) echo "usage: zweb [status|start|stop|token NAME|rotoken NAME|tokens|revoke NAME|up|down]  (see comment above zweb in ~/.aliases)" ;;
-        *) echo "usage: zweb [status|start|stop|token NAME|rotoken NAME|tokens|revoke NAME|up|down]" >&2; return 2 ;;
+        enable|disable)
+            # Run `zweb up` at login via config/zellij/zweb-boot.sh (which waits
+            # for Tailscale first). Per-machine opt-in — not every host should
+            # publish — so it's a subcommand, not wired into make_symlinks.
+            local boot="$HOME/.config/zellij/zweb-boot.sh"
+            case "$(uname -s)" in
+                Darwin)
+                    local plist="$HOME/Library/LaunchAgents/dev.zellij.zweb.plist"
+                    launchctl unload "$plist" 2>/dev/null
+                    if [ "$cmd" = disable ]; then
+                        rm -f "$plist"; echo "zweb: login autostart removed"; return 0
+                    fi
+                    [ -f "$boot" ] || { echo "zweb: $boot missing (run make_symlinks.sh)" >&2; return 1; }
+                    mkdir -p "$(dirname "$plist")"
+                    cat > "$plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>Label</key><string>dev.zellij.zweb</string>
+    <key>ProgramArguments</key>
+    <array><string>/bin/bash</string><string>$boot</string></array>
+    <key>RunAtLoad</key><true/>
+    <key>StandardErrorPath</key><string>${TMPDIR:-/tmp}/zweb-boot.log</string>
+</dict></plist>
+EOF
+                    launchctl load "$plist" \
+                        && echo "zweb: will run at login (launchd dev.zellij.zweb); log: ${TMPDIR:-/tmp}/zweb-boot.log" ;;
+                *)
+                    local unit="$HOME/.config/systemd/user/zweb.service"
+                    if [ "$cmd" = disable ]; then
+                        systemctl --user disable --now zweb.service 2>/dev/null
+                        rm -f "$unit"; systemctl --user daemon-reload 2>/dev/null
+                        echo "zweb: login autostart removed"; return 0
+                    fi
+                    [ -f "$boot" ] || { echo "zweb: $boot missing (run make_symlinks.sh)" >&2; return 1; }
+                    mkdir -p "$(dirname "$unit")"
+                    cat > "$unit" <<EOF
+[Unit]
+Description=Publish zellij web on the tailnet (zweb up)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash $boot
+
+[Install]
+WantedBy=default.target
+EOF
+                    systemctl --user daemon-reload 2>/dev/null
+                    systemctl --user enable --now zweb.service \
+                        && echo "zweb: will run at login (systemd --user zweb.service)"
+                    echo "zweb: for boot without an active login, run once: sudo loginctl enable-linger $USER" ;;
+            esac ;;
+        help|-h|--help) echo "usage: zweb [status|start|stop|token NAME|rotoken NAME|tokens|revoke NAME|up|down|enable|disable]  (see comment above zweb in ~/.aliases)" ;;
+        *) echo "usage: zweb [status|start|stop|token NAME|rotoken NAME|tokens|revoke NAME|up|down|enable|disable]" >&2; return 2 ;;
     esac
 }
 

@@ -21,10 +21,13 @@
 #                  straight to the / mount. (Renaming a session from inside
 #                  the iframe navigates it to the unproxied page, which
 #                  refuses to render framed — reopen from the switcher.)
+import atexit
 import html
 import http.server
+import os
 import re
 import subprocess
+import sys
 import urllib.request
 
 PORT = 8083
@@ -233,5 +236,33 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
+def daemonize():
+    # Double-fork + setsid so the switcher fully detaches into its own session.
+    # Without this, launchd/systemd reap it as a child when the one-shot boot
+    # job that started it exits (macOS has no setsid binary, so do it here).
+    # The already-bound listening socket survives the forks.
+    if os.fork() > 0:
+        os._exit(0)
+    os.setsid()
+    if os.fork() > 0:
+        os._exit(0)
+    devnull = os.open(os.devnull, os.O_RDWR)
+    for fd in (0, 1, 2):
+        os.dup2(devnull, fd)
+
+def write_pidfile(path):
+    # Record our own pid once the port is bound: whoever wins the bind is the
+    # real switcher, so `zweb` reads an authoritative pidfile no matter how this
+    # was launched. Capturing $! in the shell instead recorded the wrong pid.
+    with open(path, "w") as f:
+        f.write(str(os.getpid()))
+    atexit.register(lambda: os.path.exists(path) and os.remove(path))
+
 if __name__ == "__main__":
-    http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    # Bind first so an "address already in use" (a second start) fails loudly
+    # before we detach. A pidfile arg means "run in the background".
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    if len(sys.argv) > 1:
+        daemonize()
+        write_pidfile(sys.argv[1])
+    server.serve_forever()
