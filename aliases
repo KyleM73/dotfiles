@@ -219,6 +219,20 @@ glow() {
 # venv
 alias venv="source .venv/bin/activate"
 
+# nb [FILE.ipynb] / nbc: Jupyter notebook / console in the terminal (euporie).
+# Inside a uv project (pyproject.toml up the tree) the kernel runs in that
+# project's env, so its packages import; elsewhere euporie's own kernel is used.
+_euporie() {
+    local app="$1" d="$PWD"; shift
+    while [ "$d" != "/" ] && [ -n "$d" ]; do
+        [ -f "$d/pyproject.toml" ] && { uv run --with euporie --with ipykernel "euporie-$app" "$@"; return; }
+        d="${d%/*}"
+    done
+    "euporie-$app" "$@"
+}
+nb()  { _euporie notebook "$@"; }
+nbc() { _euporie console "$@"; }
+
 # Tailscale CLI on macOS lives inside the app bundle (Linux has it on PATH)
 [ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ] && \
     alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"

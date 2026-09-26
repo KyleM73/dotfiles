@@ -36,7 +36,7 @@ That single command is the whole setup. `make_symlinks.sh`:
   and writes them to `~/.gitconfig.local` — so identity is set automatically and
   never committed. Skipped if `~/.gitconfig.local` already exists.
 - Offers to install the CLI tools the editor setup uses (Neovim, Zellij, Yazi,
-  fzf, ripgrep, mosh, ruff, ty, …) via [`install_deps.sh`](#installing-the-tools).
+  fzf, ripgrep, mosh, ruff, ty, euporie, …) via [`install_deps.sh`](#installing-the-tools).
   Skip with `SKIP_DEPS=1 ./make_symlinks.sh`.
 
 `bashrc` is the single cross-shell init file, sourced by both bash and zsh.
@@ -140,8 +140,8 @@ package manager and does the right thing per platform:
 - **zoxide, ripgrep, bat, and fd** get the same treatment when the distro's
   version is years old (e.g. Ubuntu 22.04's zoxide 0.4): a current release
   goes into `~/.local/bin`, which `PATH` prefers.
-- **`ruff` + `ty`** always go through **`uv`** (cross-platform, no root); `uv`
-  itself is installed if missing.
+- **`ruff`, `ty`, and `euporie`** always go through **`uv`** (cross-platform, no
+  root); `uv` itself is installed if missing.
 
 `~/.local/bin` is added to your `PATH` by the shell config, so a freshly
 installed Neovim wins over an older system one.
@@ -235,6 +235,12 @@ all Rust, no Node/pyright. `install_deps.sh` installs both (manually:
 `uv tool install ruff` and `uv tool install ty`); they auto-detect the active
 venv / `pyproject.toml`. The config uses Neovim's native `vim.lsp` API (0.11+);
 on older nvim the LSP file warns and skips itself.
+
+**Notebooks in the terminal:** [euporie](https://euporie.readthedocs.io) runs
+Jupyter notebooks in a zellij pane. `nb [file.ipynb]` opens the notebook app,
+`nbc` a console. Inside a uv project (a `pyproject.toml` up the tree) they run
+via `uv run --with euporie`, so the kernel is the project's env and its packages
+import; elsewhere they use the globally installed euporie and its own kernel.
 
 **Clipboard over SSH:** yanks route through OSC52 when connected over SSH, so
 `yy` on a remote box lands in your local clipboard. Locally the native

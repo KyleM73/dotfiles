@@ -20,7 +20,7 @@ path_prepend() {
 }
 path_prepend "/usr/local/bin"
 path_prepend "$HOME/bin"
-# ~/.local/bin holds uv-installed tools (ruff, ty) and any release binaries
+# ~/.local/bin holds uv-installed tools (ruff, ty, euporie) and any release binaries
 # install_deps.sh drops there (nvim/fzf/zellij/yazi on Linux); keep it ahead of
 # system paths so a current nvim wins over an older apt one.
 path_prepend "$HOME/.local/bin"

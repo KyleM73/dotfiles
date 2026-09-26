@@ -14,7 +14,7 @@
 #     fzf     — apt ships < 0.48; the shell keybindings need `fzf --bash/--zsh`
 #     zellij, yazi, lazygit, glow — not packaged on Debian/Ubuntu
 #     zoxide, ripgrep, bat, fd — distro versions lag years; upgraded when old
-# Python tools (ruff, ty) always go through uv (no brew, no root).
+# Python tools (ruff, ty, euporie) always go through uv (no brew, no root).
 #
 # Usage:
 #   ./install_deps.sh            install everything that's missing
@@ -537,7 +537,7 @@ fi
 
 # ---- Python tooling via uv (no brew / no root needed) ----------------------
 echo
-echo "Python tooling (ruff + ty, via uv):"
+echo "Python tooling (ruff + ty + euporie, via uv):"
 if ! command -v uv >/dev/null 2>&1; then
     if [ "$PM" = "brew" ]; then
         pm_install uv
@@ -553,8 +553,12 @@ if command -v uv >/dev/null 2>&1 || [ "$DRY_RUN" = "1" ]; then
         printf '  → uv tool install %s\n' "$tool"
         run uv tool install "$tool"
     done
+    # euporie: Jupyter notebooks in the terminal; ipykernel gives it a Python
+    # kernel for use outside any project (see `nb` in ~/.aliases).
+    printf '  → uv tool install euporie --with ipykernel\n'
+    run uv tool install euporie --with ipykernel
 else
-    echo "  ! uv unavailable; later run: uv tool install ruff && uv tool install ty"
+    echo "  ! uv unavailable; later run: uv tool install ruff ty && uv tool install euporie --with ipykernel"
 fi
 
 # ---- LaTeX (nvim's vimtex: latexmk compiler + Skim viewer + texlab LSP) ----
