@@ -222,8 +222,14 @@ alias venv="source .venv/bin/activate"
 # nb [FILE.ipynb] / nbc: Jupyter notebook / console in the terminal (euporie).
 # Inside a uv project (pyproject.toml up the tree) the kernel runs in that
 # project's env, so its packages import; elsewhere euporie's own kernel is used.
+# Inline images: euporie's autodetect doesn't see kitty graphics through zellij,
+# so force the protocol when the terminal is known to support it (zellij 0.45+
+# re-emits it to the host). Other terminals keep euporie's own detection.
 _euporie() {
     local app="$1" d="$PWD"; shift
+    case "${TERM-}:${TERM_PROGRAM-}" in
+        *ghostty*|*kitty*|*[Ww]ez[Tt]erm*|*konsole*|*rio*) set -- --graphics kitty --force-graphics "$@" ;;
+    esac
     while [ "$d" != "/" ] && [ -n "$d" ]; do
         [ -f "$d/pyproject.toml" ] && { uv run --with euporie --with ipykernel "euporie-$app" "$@"; return; }
         d="${d%/*}"

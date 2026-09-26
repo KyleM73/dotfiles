@@ -241,6 +241,9 @@ Jupyter notebooks in a zellij pane. `nb [file.ipynb]` opens the notebook app,
 `nbc` a console. Inside a uv project (a `pyproject.toml` up the tree) they run
 via `uv run --with euporie`, so the kernel is the project's env and its packages
 import; elsewhere they use the globally installed euporie and its own kernel.
+In Ghostty, kitty, WezTerm, Konsole, or Rio they force kitty graphics so plots
+render inline, including inside zellij (0.45+ relays them to the terminal);
+elsewhere euporie's own detection decides.
 
 **Clipboard over SSH:** yanks route through OSC52 when connected over SSH, so
 `yy` on a remote box lands in your local clipboard. Locally the native
