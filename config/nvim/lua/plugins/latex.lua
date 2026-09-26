@@ -15,5 +15,15 @@ return {
       vim.g.vimtex_view_skim_activate = 1 -- focus Skim on view
     end
     vim.g.vimtex_quickfix_open_on_warning = 0 -- auto-open quickfix on errors only
+
+    -- Start latexmk continuous compile as soon as vimtex initializes a tex
+    -- buffer, so compile-on-save + Skim reload work without pressing
+    -- <Space>ll each session. The bang form is a no-op when the project's
+    -- compiler is already running (opening a second file of the same
+    -- document will not toggle it off).
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "VimtexEventInitPost",
+      command = "VimtexCompile!",
+    })
   end,
 }
