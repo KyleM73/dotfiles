@@ -149,6 +149,10 @@ install_nvim_release() {
     rm -rf "$tmp"
 }
 
+# zellij 0.44's plugin runtime crashes the zjstatus tab bar (dj95/zjstatus#247);
+# 0.45 fixed it, and zjstatus >= v0.25 (config/zellij/config.kdl) needs 0.45+.
+ZELLIJ_MIN="0.45"
+
 install_zellij_release() {
     local a triple url tmp
     a="$(rust_arch)"; [ -z "$a" ] && { echo "  ! zellij: unsupported arch $ARCH"; return 1; }
@@ -393,7 +397,19 @@ fi
 # ---- multiplexer + file manager (release binaries on Linux) ----------------
 echo
 echo "Multiplexer + file manager:"
-smart_install zellij zellij install_zellij_release
+# zellij: install if missing, upgrade if older than ZELLIJ_MIN.
+install_zellij_floor() {
+    if [ "$PM" = "brew" ]; then
+        printf '  → %-10s brew upgrade/install\n' zellij
+        if brew list --versions zellij >/dev/null 2>&1; then run brew upgrade zellij; else run brew install zellij; fi
+        { [ "$DRY_RUN" = "1" ] || ! ver_lt "$(ver_mm zellij)" "$ZELLIJ_MIN"; } && return 0
+        echo "  ! zellij on PATH is still $(ver_mm zellij) — is an old ~/.local/bin/zellij shadowing brew's?"
+        return 1
+    fi
+    have_dl || { echo "  ! zellij: need curl or wget"; return 1; }
+    install_zellij_release
+}
+maybe_upgrade zellij "$ZELLIJ_MIN" install_zellij_floor
 smart_install yazi   yazi   install_yazi_release
 
 # Build mosh from its release tarball (which ships ./configure) into /usr/local.

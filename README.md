@@ -329,7 +329,9 @@ status bar, and session persistence (survives SSH disconnects — detach with
   the **name** is auto-set to its focused pane's path — a shell's directory
   (`projects/dotfiles`) or, in nvim, the `dir/filename` you're editing.
   `make_symlinks.sh` pre-authorizes the plugin (a 1-line bar pane can't show
-  zellij's permission prompt), so it just works — no manual grant.
+  zellij's permission prompt), so it just works — no manual grant. Needs
+  zellij ≥ 0.45 (0.44 crashes the plugin on attach); `install_deps.sh`
+  upgrades anything older.
 - **Tab names** are set once when a tab opens; they don't re-run per command. To
   re-sync every tab to its focused pane after moving around, run **`ztab`** (or
   **`<leader>tz`** in nvim). A tab you rename yourself (`Ctrl+t` then `r`) is left

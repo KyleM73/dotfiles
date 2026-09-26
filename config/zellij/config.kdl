@@ -55,13 +55,16 @@ default_layout "shell"
 // vendored); the layouts reference this alias as `location="zjtabs"`. Named ANSI
 // colors (not hex) keep it following the terminal theme.
 //
+// Needs zellij >= 0.45: 0.44 crashes zjstatus on every attach (dj95/zjstatus#247),
+// and v0.25+ requires 0.45 anyway. install_deps.sh enforces the floor.
+//
 // Plugins need a permission grant, and a 1-line bar pane can't show the prompt,
 // so make_symlinks.sh pre-authorizes it in zellij's permission cache. If the bar
 // is ever blank (e.g. after bumping the version below), re-run make_symlinks.sh
 // or grant manually from a running session with:
-//   zellij plugin -- https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm
+//   zellij plugin -- https://github.com/dj95/zjstatus/releases/download/v0.25.0/zjstatus.wasm
 plugins {
-    zjtabs location="https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm" {
+    zjtabs location="https://github.com/dj95/zjstatus/releases/download/v0.25.0/zjstatus.wasm" {
         format_left  "{tabs}"
         format_right ""
         tab_normal   "#[fg=cyan,bg=black] {index}: {name} "
