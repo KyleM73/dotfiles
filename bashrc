@@ -213,7 +213,7 @@ if command -v zellij >/dev/null 2>&1; then
                 compadd -M 'm:{a-zA-Z}={A-Za-z} l:|=* r:|=*' -- $hosts
             elif (( CURRENT == 3 )); then
                 local out; local -a sess
-                out="$(ssh -o ConnectTimeout=2 -o BatchMode=yes -- $words[2] 'zellij list-sessions -ns' 2>/dev/null)"
+                out="$(command ssh -o ConnectTimeout=2 -o BatchMode=yes -- $words[2] 'zellij list-sessions -ns' 2>/dev/null)"
                 if (( $? == 255 )); then
                     _message -r "${words[2]} unreachable"          # empty vs unreachable are now distinct
                 else
@@ -248,7 +248,7 @@ if command -v zellij >/dev/null 2>&1; then
             if [ "$COMP_CWORD" -eq 1 ]; then
                 COMPREPLY=($(awk 'tolower($1)=="host"{for (i=2;i<=NF;i++) if ($i !~ /[*?]/) print $i}' ~/.ssh/config 2>/dev/null | grep -iF -- "$cur"))
             elif [ "$COMP_CWORD" -eq 2 ]; then
-                COMPREPLY=($(ssh -o ConnectTimeout=2 -o BatchMode=yes -- "${COMP_WORDS[1]}" 'zellij list-sessions -ns' 2>/dev/null | grep -iF -- "$cur"))
+                COMPREPLY=($(command ssh -o ConnectTimeout=2 -o BatchMode=yes -- "${COMP_WORDS[1]}" 'zellij list-sessions -ns' 2>/dev/null | grep -iF -- "$cur"))
             fi
         }
         complete -F _zssh zssh

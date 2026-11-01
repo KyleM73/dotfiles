@@ -21,8 +21,21 @@ font-family = "Hack Nerd Font Mono"
 # types special characters like é/© — use press-and-hold instead.)
 macos-option-as-alt = true
 
+# SSH (Ghostty >= 1.4; shell integration wraps `ssh` as `ghostty +ssh`):
+#   ssh-terminfo  installs/compiles the xterm-ghostty terminfo on each remote
+#                 host on first connect (needs `tic` there), caches it, and
+#                 reinstalls when Ghostty's terminfo changes — no manual
+#                 `infocmp | ssh host tic` needed. Inspect/reset the cache with
+#                 `ghostty +ssh-cache` / `ghostty +ssh-cache --remove=HOST`.
+#   ssh-env       if the install fails, falls back to TERM=xterm-256color (no
+#                 "unknown terminal type") and sends COLORTERM/TERM_PROGRAM —
+#                 which the remote only keeps if its sshd AcceptEnv allows them.
+# Listed features are added to the defaults (cursor, title, path), not replacing them.
+# Applies to `ssh` typed in a Ghostty shell, incl. zssh; not to mosh/mssh (mosh sets TERM itself).
+shell-integration-features = ssh-terminfo,ssh-env
+
 # Common extras — uncomment and tweak to taste:
-# theme = "GruvboxDark"          # `ghostty +list-themes` to browse built-ins
+# theme = "Gruvbox Dark"         # `ghostty +list-themes` to browse built-ins
 # background-opacity = 0.95
 # confirm-close-surface = false
 # window-padding-x = 4

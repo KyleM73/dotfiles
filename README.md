@@ -475,6 +475,17 @@ Alt keybinds (zellij, fzf) work on any keyboard layout. The file has commented
 extras (theme, opacity, padding) to tweak. Read on both macOS and Linux from
 `~/.config/ghostty/config`.
 
+**SSH:** `shell-integration-features = ssh-terminfo,ssh-env` (Ghostty 1.4+)
+has Ghostty's shell integration wrap `ssh`: on first connect to a host it
+installs the `xterm-ghostty` terminfo there (needs `tic`), caches that, and
+reinstalls when Ghostty's terminfo changes; if it can't install, the session
+falls back to `TERM=xterm-256color`. So there is no need to copy terminfo to
+remote boxes by hand. `ghostty +ssh-cache` lists the installed hosts;
+`ghostty +ssh-cache --remove=HOST` forces a reinstall on the next connect.
+Tab-completion and session-list probes use `command ssh` to skip the wrapper
+(they have no tty, so `TERM` doesn't matter). Older Ghostty versions show a
+config error for this line.
+
 ## Conda
 
 Conda is **lazy-loaded**: it is not initialized at startup and `base` is never

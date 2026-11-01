@@ -172,7 +172,8 @@ _zssh_impl() {  # _zssh_impl TRANSPORT HOST [DIR|query]
         return "$rc"
     fi
 
-    names="$(ssh "$host" 'zellij list-sessions -ns 2>/dev/null')"; rc=$?
+    # `command ssh`: a tty-less one-shot, so skip Ghostty's ssh wrapper (terminfo/TERM).
+    names="$(command ssh "$host" 'zellij list-sessions -ns 2>/dev/null')"; rc=$?
     [ "$rc" -eq 255 ] && { echo "$name: cannot reach '$host' (host unreachable)" >&2; return 1; }
     qbase="$(basename -- "$query")"
 
