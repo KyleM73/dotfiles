@@ -126,6 +126,11 @@ zm() { _zsession mobile "$1" "-mobile"; }  # zm [dir]: mobile-sized (1-line dir 
 # this to refresh after cd-ing around. A tab you rename yourself stays put.
 ztab() { "$HOME/.config/zellij/ztab.sh" "$@"; }
 
+# zpersist [status|install|uninstall]: Linux sessions survive logout / user-manager
+# death (a root service moves every zellij server out of user.slice). See
+# config/zellij/zpersist.sh; install_deps.sh installs it.
+zpersist() { "$HOME/.config/zellij/zpersist.sh" "$@"; }
+
 # Session management. With session_serialization on, `kill` leaves a session
 # resurrectable (still listed); `delete` removes it for good. za/zk/zd are
 # functions (not aliases) so zsh honors their session-name completion (see bashrc).

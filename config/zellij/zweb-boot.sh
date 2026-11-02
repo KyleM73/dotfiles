@@ -4,6 +4,9 @@
 # on Linux). Runs in a minimal boot environment: set a PATH that finds
 # zellij/python, wait for Tailscale to come online, then `zweb up`.
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+# Same socket dir as the shells (bashrc/zshenv), so the web server sees the
+# sessions zpersist keeps alive.
+[ "$(uname -s)" = Linux ] && export ZELLIJ_SOCKET_DIR="$HOME/.local/state/zellij/sock"
 
 ZWEB="$HOME/.config/zellij/zweb.sh"
 if [ ! -x "$ZWEB" ]; then

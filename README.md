@@ -387,6 +387,21 @@ custom-named session use `zellij -s NAME`; `Ctrl+o` then `w` opens an
 interactive manager to switch/rename/kill. (Aliases are interactive-only; for a
 remote peek without attaching, use the binary: `ssh a5090 zellij ls`.)
 
+**Sessions survive logout (Linux):** by default a zellij server lives in your
+login's cgroup and its socket in `/run/user/UID`. Logging out of the desktop,
+`loginctl terminate-user`, or the systemd `--user` manager dying kills the
+former and wipes the latter. So on Linux, `install_deps.sh` installs a small
+root service, `zellij-persist@$USER`
+([`config/zellij/zpersist.sh`](config/zellij/zpersist.sh)). Within ~2s of any
+zellij server starting, it moves that server and its panes into their own
+scope under `system.slice`, outside your login. This covers sessions started
+with `z`/`za`/`zssh`/`mssh`, a plain `zellij`, or the browser; the web server
+gets the same treatment. Sockets live in `~/.local/state/zellij/sock`
+(`ZELLIJ_SOCKET_DIR`, set by `bashrc`/`zshenv` on Linux). `zpersist` shows
+whether each running server is protected; `zpersist install` (needs sudo once)
+installs or refreshes the service, and `zpersist uninstall` removes it.
+Nothing changes on macOS, where logout doesn't kill sessions.
+
 ### Zellij in the browser
 
 Zellij ships a web server (`web_server true` in `config.kdl` keeps it running

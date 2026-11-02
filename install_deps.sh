@@ -453,6 +453,23 @@ if command -v mosh >/dev/null 2>&1 && ver_lt "$(ver_mm mosh)" 1.4; then
     install_mosh_source
 fi
 
+# ---- zellij sessions survive logout (Linux + systemd) ------------------------
+# A root service moves every zellij server out of user.slice, so logging out or
+# the systemd --user manager dying no longer kills sessions. Needs sudo once;
+# re-running refreshes the installed copy. Details: config/zellij/zpersist.sh.
+ZPERSIST="$(cd "$(dirname "$0")" && pwd)/config/zellij/zpersist.sh"
+if [ "$OS" = "Linux" ] && [ -d /run/systemd/system ] && [ -x "$ZPERSIST" ]; then
+    echo
+    echo "Persistent zellij sessions (zpersist):"
+    if [ "$DRY_RUN" = "1" ]; then
+        echo "    [dry-run] $ZPERSIST install"
+    elif [ "$PM_USABLE" = "1" ] || sudo -n true 2>/dev/null; then
+        "$ZPERSIST" install || echo "  ! zpersist install failed (retry: zpersist install)"
+    else
+        echo "  ! needs sudo — sessions won't survive logout until you run: zpersist install"
+    fi
+fi
+
 # ---- finder + search --------------------------------------------------------
 echo
 echo "Finder + search:"

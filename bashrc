@@ -26,6 +26,12 @@ path_prepend "$HOME/bin"
 path_prepend "$HOME/.local/bin"
 export PATH
 
+# zellij sockets (Linux): keep them out of /run/user/$UID, which is wiped when
+# the user manager stops, so sessions kept alive by zpersist stay attachable.
+# Every zellij command (incl. `ssh host zellij ...`) must agree on this, so
+# bashrc, zshenv and zweb-boot.sh all set it. See config/zellij/zpersist.sh.
+case "${OSTYPE-}" in linux*) export ZELLIJ_SOCKET_DIR="$HOME/.local/state/zellij/sock" ;; esac
+
 # uv's env file (adds its bin dir; only if installed on this machine)
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
 
