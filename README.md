@@ -31,6 +31,7 @@ That single command is the whole setup. `make_symlinks.sh`:
   | `config/yazi`    | `~/.config/yazi`          |
   | `config/zellij`  | `~/.config/zellij`        |
   | `config/ghostty` | `~/.config/ghostty`       |
+  | `claude/skills/*` | `~/.claude/skills/*` (one link per skill, e.g. `refcheck`) |
 
 - Prompts for your git name/email (pre-filled from your existing `~/.gitconfig`)
   and writes them to `~/.gitconfig.local` — so identity is set automatically and
@@ -256,20 +257,33 @@ clipboard is used.
 ### LaTeX (vimtex + latexmk + Skim)
 
 `plugins/latex.lua` sets up [vimtex](https://github.com/lervag/vimtex), which
-wraps `latexmk` in continuous-compile mode and respects a per-project
-`.latexmkrc` (e.g. `$out_dir = 'build'`), so `build/main.pdf` just works.
-`install_deps.sh` installs the rest on macOS: BasicTeX (TeX Live's ~100 MB
-scheme; `latexmk` added via `tlmgr`), [Skim](https://skim-app.sourceforge.io)
-(unlike Preview it auto-reloads the PDF on every rebuild and speaks SyncTeX in
-both directions — the script configures both via `defaults write`), and the
-optional `texlab` LSP for completion/references (`plugins/lsp.lua` enables it
-only when the binary is present).
+wraps `latexmk` in continuous-compile mode with PDF + aux in `build/` and
+SyncTeX on, and respects a per-project `.latexmkrc`. `install_deps.sh`
+installs the rest on macOS:
+- **Full TeX Live**: `mactex-no-gui`, or `tlmgr install scheme-full` on top
+  of an existing BasicTeX. That's ~5 GB, so papers build offline with every
+  venue package. `TEX_SCHEME=basic` keeps the ~100 MB BasicTeX instead.
+- [Skim](https://skim-app.sourceforge.io). Unlike Preview, it auto-reloads
+  the PDF on every rebuild and speaks SyncTeX in both directions; the script
+  configures both via `defaults write`.
+- The `texlab` LSP for completion and references (`plugins/lsp.lua` enables
+  it only when the binary is present).
+
+**Shared-config repos** (e.g. `~/projects/papers`): if a file named
+`latexmkrc` (no dot) is in an ancestor directory of the document, vimtex
+runs `latexmk -r <that file>`, so every paper in the repo builds identically
+with no per-paper rc file. That matters for Overleaf-synced dirs, which
+can't carry one. texlab gets that repo's `style/latex/` and `bib/` on its
+`TEXINPUTS`/`BIBINPUTS`, so shared styles and the bibliography resolve for
+completion.
 
 **Workflow:** open `main.tex`, hit `<Space>ll` once — latexmk now recompiles
 on every save (saves to `\input` files like TikZ figures trigger rebuilds too)
-and Skim refreshes the PDF in place. For side-by-side writing, snap the
-terminal to the left half and Skim to the right (macOS window tiling, or
-Rectangle/Raycast).
+and Skim refreshes the PDF in place, scrolling to the cursor's line after
+each build without stealing focus (`vimtex_view_skim_activate = 0`). For
+side-by-side writing, snap the terminal to the left half and Skim to the
+right (macOS window tiling: hold Option and drag, or Window → Move & Resize;
+or Rectangle/Raycast).
 
 | Mapping           | Action                                                |
 | ----------------- | ----------------------------------------------------- |
@@ -285,12 +299,12 @@ run `nvim --headless -c "VimtexInverseSearch %line '%file'"`, which relays the
 jump to your running nvim. If you installed Skim by hand, either re-run
 `install_deps.sh` or set Skim → Settings → Sync to those values yourself.
 
-Missing a style file? BasicTeX is minimal by design:
+Missing a style file (only on `TEX_SCHEME=basic`)?
 `sudo tlmgr install <pkg>` (find the package with `tlmgr search --global --file <name>.sty`).
 
-Project-specific settings (e.g. `TEXINPUTS`/`BIBINPUTS` for a shared style/bib
-dir) live in that project's `.nvim.lua`, not here — `exrc` is enabled
-(`options.lua`), and nvim prompts once to trust each file:
+Other project-specific settings live in that project's `.nvim.lua`, not
+here. `exrc` is enabled (`options.lua`), and nvim prompts once to trust each
+file:
 
 ```lua
 -- <project>/.nvim.lua

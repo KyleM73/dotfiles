@@ -57,6 +57,19 @@ for dir in nvim yazi zellij ghostty; do
     echo "  $target -> $DOTFILES/config/$dir"
 done
 
+# Agent skills -> ~/.claude/skills/<name> (one symlink per skill dir, so
+# skills installed by other means in ~/.claude/skills are left alone).
+mkdir -p ~/.claude/skills
+echo "Linking agent skills into ~/.claude/skills"
+for skill in "$DOTFILES"/claude/skills/*/; do
+    [ -d "$skill" ] || continue
+    name="$(basename "$skill")"
+    target=~/.claude/skills/"$name"
+    [ -e "$target" ] && [ ! -L "$target" ] && backup "$target"
+    ln -sfn "${skill%/}" "$target"
+    echo "  $target -> ${skill%/}"
+done
+
 # Guard pushes with the tracked secret-scanning hook (githooks/pre-push):
 # this is a public repo, so anything that smells like a key, token, or
 # tailnet identifier must never leave the machine. Idempotent.

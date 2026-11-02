@@ -55,11 +55,31 @@ return {
 
       -- LaTeX: texlab adds completion/references/rename alongside vimtex
       -- (plugins/latex.lua). Gated on the binary so TeX-less machines don't
-      -- spawn a dead client. Project-specific env (TEXINPUTS/BIBINPUTS for a
-      -- shared style/bib dir) belongs in that project's .nvim.lua — read via
-      -- exrc (options.lua) — e.g.:
-      --   vim.lsp.config("texlab", { cmd_env = { TEXINPUTS = "../shared//:" } })
+      -- spawn a dead client. Build output lives in build/ (matches vimtex).
+      -- Shared-config repos (a `latexmkrc` at the texlab root, e.g.
+      -- ~/projects/papers): if the root also has style/latex/ and bib/, put
+      -- them on texlab's TEXINPUTS/BIBINPUTS so \usepackage{kmfig} and the
+      -- shared bibliography resolve, mirroring what that latexmkrc does.
+      -- Other projects can still override via their .nvim.lua (exrc).
       if vim.fn.executable("texlab") == 1 then
+        vim.lsp.config("texlab", {
+          root_markers = { "latexmkrc", ".latexmkrc", ".texlabroot", ".git" },
+          settings = { texlab = { build = { auxDirectory = "build", pdfDirectory = "build" } } },
+          cmd = function(dispatchers, config)
+            local env
+            local root = config.root_dir
+            if root and vim.uv.fs_stat(root .. "/latexmkrc") then
+              env = {}
+              if vim.uv.fs_stat(root .. "/style/latex") then
+                env.TEXINPUTS = ".:" .. root .. "/style/latex//:"
+              end
+              if vim.uv.fs_stat(root .. "/bib") then
+                env.BIBINPUTS = ".:" .. root .. "/bib:"
+              end
+            end
+            return vim.lsp.rpc.start({ "texlab" }, dispatchers, { env = env })
+          end,
+        })
         vim.lsp.enable("texlab")
       end
 

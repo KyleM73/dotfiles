@@ -582,28 +582,55 @@ fi
 # The nvim side lives in config/nvim/lua/plugins/latex.lua; this installs the
 # binaries and points Skim at nvim for SyncTeX inverse search (see README).
 echo
-echo "LaTeX (latexmk + Skim + texlab; used by nvim's vimtex):"
-if command -v latexmk >/dev/null 2>&1; then
-    echo "  ✓ latexmk     present"
-elif [ "$OS" = "Darwin" ] && [ "$PM" = "brew" ]; then
-    # BasicTeX = TeX Live's small scheme (~100 MB vs MacTeX's ~5 GB). It does
-    # NOT include latexmk, so pull that via tlmgr (needs sudo — TeX Live lives
-    # under /usr/local/texlive). Missing styles later: sudo tlmgr install <pkg>
-    echo "  → basictex    brew cask (+ latexmk via tlmgr)"
-    pm_install --cask basictex
-    if [ "$DRY_RUN" = "1" ] || { [ -x /Library/TeX/texbin/tlmgr ] && [ -t 0 ]; }; then
-        run sudo /Library/TeX/texbin/tlmgr update --self
-        run sudo /Library/TeX/texbin/tlmgr install latexmk
+echo "LaTeX (full TeX Live + latexmk + Skim + texlab; used by nvim's vimtex):"
+# Full TeX Live by default: venue classes and papers pull in hundreds of
+# packages (newtx, algorithmic, siunitx, IEEEtran, jmlr, ...), and writing
+# offline (travel) means none can be fetched on demand. ~5 GB.
+# TEX_SCHEME=basic keeps the old small BasicTeX install instead (~100 MB).
+TEX_SCHEME="${TEX_SCHEME:-full}"
+TLMGR=/Library/TeX/texbin/tlmgr
+if [ "$OS" = "Darwin" ] && [ "$PM" = "brew" ]; then
+    if [ -x "$TLMGR" ] && "$TLMGR" info --only-installed scheme-full 2>/dev/null | grep -q 'installed: *Yes'; then
+        echo "  ✓ TeX Live    full scheme present"
+    elif [ -x "$TLMGR" ]; then
+        # An existing TeX Live (e.g. BasicTeX): grow it in place via tlmgr
+        # (needs sudo; TeX Live lives under /usr/local/texlive).
+        if [ "$TEX_SCHEME" = "full" ]; then
+            echo "  → TeX Live    upgrade existing install to scheme-full (tlmgr; ~5 GB)"
+            pkgs="scheme-full"
+        else
+            echo "  → TeX Live    basic scheme + latexmk (tlmgr)"
+            pkgs="latexmk"
+        fi
+        if [ "$DRY_RUN" = "1" ] || [ -t 0 ]; then
+            run sudo "$TLMGR" update --self
+            run sudo "$TLMGR" install $pkgs
+        else
+            echo "  ! then run: sudo tlmgr update --self && sudo tlmgr install $pkgs"
+        fi
+    elif [ "$TEX_SCHEME" = "full" ]; then
+        # MacTeX without the GUI apps (TeXShop etc.; Skim is installed below).
+        echo "  → mactex-no-gui  brew cask (full TeX Live, includes latexmk)"
+        pm_install --cask mactex-no-gui
     else
-        echo "  ! then run: sudo tlmgr update --self && sudo tlmgr install latexmk"
+        echo "  → basictex    brew cask (+ latexmk via tlmgr)"
+        pm_install --cask basictex
+        if [ "$DRY_RUN" = "1" ] || { [ -x "$TLMGR" ] && [ -t 0 ]; }; then
+            run sudo "$TLMGR" update --self
+            run sudo "$TLMGR" install latexmk
+        else
+            echo "  ! then run: sudo tlmgr update --self && sudo tlmgr install latexmk"
+        fi
     fi
     echo "  * new shells pick up /Library/TeX/texbin via /etc/paths.d/TeX"
+elif command -v latexmk >/dev/null 2>&1 && [ "$TEX_SCHEME" != "full" ]; then
+    echo "  ✓ latexmk     present"
 else
     case "$PM" in
-        apt-get) pm_install latexmk texlive-latex-extra ;;
-        dnf)     pm_install latexmk texlive-collection-latexextra ;;
-        pacman)  pm_install texlive-binextra texlive-latexextra ;;
-        *)       echo "  ! latexmk: install TeX Live + latexmk with your package manager" ;;
+        apt-get) if [ "$TEX_SCHEME" = "full" ]; then pm_install texlive-full latexmk; else pm_install latexmk texlive-latex-extra; fi ;;
+        dnf)     if [ "$TEX_SCHEME" = "full" ]; then pm_install texlive-scheme-full latexmk; else pm_install latexmk texlive-collection-latexextra; fi ;;
+        pacman)  if [ "$TEX_SCHEME" = "full" ]; then pm_install texlive-meta; else pm_install texlive-binextra texlive-latexextra; fi ;;
+        *)       echo "  ! latexmk: install TeX Live (full scheme) + latexmk with your package manager" ;;
     esac
 fi
 
