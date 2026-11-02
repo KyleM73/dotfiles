@@ -61,13 +61,14 @@ done
 # skills installed by other means in ~/.claude/skills are left alone).
 mkdir -p ~/.claude/skills
 echo "Linking agent skills into ~/.claude/skills"
-for skill in "$DOTFILES"/claude/skills/*/; do
-    [ -d "$skill" ] || continue
+# find + while-read, not a glob: zsh aborts a sourced script on a glob with
+# no matches, and this keeps working when claude/skills/ is empty.
+find "$DOTFILES/claude/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | while IFS= read -r skill; do
     name="$(basename "$skill")"
     target=~/.claude/skills/"$name"
     [ -e "$target" ] && [ ! -L "$target" ] && backup "$target"
-    ln -sfn "${skill%/}" "$target"
-    echo "  $target -> ${skill%/}"
+    ln -sfn "$skill" "$target"
+    echo "  $target -> $skill"
 done
 
 # Guard pushes with the tracked secret-scanning hook (githooks/pre-push):
