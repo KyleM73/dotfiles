@@ -68,7 +68,7 @@ case "$cmd" in
         [ -n "$arg" ] || { echo "usage: zweb $cmd NAME   (e.g. zweb $cmd mobile)" >&2; exit 2; }
         case "$arg" in (*[!A-Za-z0-9_-]*) echo "zweb: NAME must be letters/digits/_/- only" >&2; exit 2 ;; esac
         flag=--create-token; [ "$cmd" = rotoken ] && flag=--create-read-only-token
-        # Try the documented spelling first; zellij <= 0.44.3 rejects it
+        # Try the documented spelling first; zellij rejects it (still in 0.45.1)
         # (--token-name wrongly marked exclusive, zellij-org/zellij#4976).
         if zellij web "$flag" --token-name "$arg" 2>/dev/null; then exit 0; fi
         out="$(zellij web "$flag")" || { printf '%s\n' "$out" >&2; exit 1; }

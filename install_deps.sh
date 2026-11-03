@@ -470,6 +470,14 @@ if [ "$OS" = "Linux" ] && [ -d /run/systemd/system ] && [ -x "$ZPERSIST" ]; then
     fi
 fi
 
+# sqlite3: `zweb token NAME` names the new token by editing zellij's token
+# store directly, because zellij rejects --token-name with --create-token
+# (zellij-org/zellij#4976, still present in 0.45.1). Without it, tokens stay
+# token_N. macOS ships sqlite3; minimal Linux installs often don't.
+echo
+echo "Zellij web token names (sqlite3):"
+ensure_pkg sqlite3 sqlite3 "zweb tokens will be named token_N instead of the device name"
+
 # ---- finder + search --------------------------------------------------------
 echo
 echo "Finder + search:"
