@@ -95,6 +95,11 @@ fi
 # ---------------------------------------------------------------------------
 case $- in *i*) ;; *) return ;; esac
 
+# Never leave an interactive shell without a TERM. zellij panes inherit the
+# server's environment, so a server started without one (a tty-less ssh, a
+# login service) breaks clear/less/nvim with "TERM environment variable not set".
+[ -n "${TERM-}" ] || export TERM=xterm-256color
+
 # Set a cross-shell PS1 prompt
 if [ "$SHELL_TYPE" = "bash" ]; then
     PS1="\[\e[32m\]\u:\w\[\e[m\]\$ "

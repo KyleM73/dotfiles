@@ -446,24 +446,16 @@ function in `aliases`):
    **Linux**, `tailscale serve` also needs a one-time grant to run without
    root: `sudo tailscale set --operator=$USER`. (To re-run `zweb up`
    automatically after a reboot, see `zweb enable` under the caveats below.)
-4. **Log in from the switcher** (below) — open `https://HOST/s`, enter the
-   token once, and you land on the session list. (You can also open a
-   session directly at `https://HOST/<session-name>`, which attaches or
-   resurrects a session by that name; the login prompt is the same.) Either
-   way it's **one login per browser** — bookmark `https://HOST/s`, and **Add
-   to Home Screen** gives a fullscreen app-like client.
-5. **Mobile switcher + keys:** `zweb up` also mounts a companion page at
-   `https://HOST/s` — its unauthenticated view is a token login form, and
-   once in it's a tap-to-open list of sessions, each opening with an
-   on-screen key row (esc, tab, sticky ctrl/alt, arrows, ^C) that mobile
-   keyboards lack. It's a tiny local server
-   ([`config/zellij/zweb-switcher.py`](config/zellij/zweb-switcher.py)) on the
-   same origin as the terminal, so the login cookie is shared; it works by
-   proxying only zellij's HTML shell (dropping the `X-Frame-Options: DENY`
-   that would forbid embedding it) while assets and websockets go straight
-   to zellij. One quirk: renaming a session from inside that view navigates
-   the frame to the unproxied page, which refuses to render — reopen it from
-   the switcher.
+4. **Log in:** open `https://HOST/` in any browser, enter the token once
+   (keep **Remember me**), and you're in — **one login per browser**. Opening
+   `https://HOST/<session-name>` attaches to (or resurrects, or creates) that
+   session directly.
+5. **On a phone**, zellij (≥ 0.45) switches to its own mobile UI: `https://HOST/`
+   is a tap-to-open session list with **+ New Session**, the **≡** menu
+   switches sessions, and an on-screen key row (ESC, TAB, sticky CTRL/ALT,
+   arrows) appears with the keyboard. **Add to Home Screen** gives a
+   fullscreen app-like client. Sessions started from the browser are kept
+   alive by zpersist like any other (see above).
 
 Caveats: a browser stuck looping **"connection lost"** usually means that
 session isn't web-shared — sharing is fixed per session at creation, so
@@ -477,11 +469,10 @@ status bar; the separate name keeps the layout and the small size from
 taking over your regular `<dir>` session). When you do peek
 at a desktop session from mobile, fullscreen the pane you care about
 (`Ctrl p` then `f`), and switch sessions with `Ctrl o` then `w`. After a
-reboot the server comes up with the first zellij session (or `zweb start`),
-but the `/s` switcher needs a fresh `zweb up` — its tailscale mount persists
-while its process does not, so `/s` 502s until then. Run **`zweb enable`**
-once per machine to have login automatically run `zweb up` (it waits for
-Tailscale to come online first); `zweb disable` undoes it.
+reboot the server comes up with the first zellij session (or `zweb start`);
+the tailnet mount persists on its own. Run **`zweb enable`** once per machine
+to have login automatically run `zweb up` (it waits for Tailscale to come
+online first); `zweb disable` undoes it.
 For flaky cellular links, `mssh` + Blink is still the more resilient path —
 the web client reconnects rather than mosh-style riding out the drop.
 

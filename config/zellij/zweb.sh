@@ -6,29 +6,26 @@
 # browser-trusted TLS, unreachable off-tailnet, persists across reboots.
 # https://HOST/<session-name> attaches to (or resurrects) that session.
 # Each device logs in once with a token (shown once; revoke to invalidate).
+# Phones get zellij's own mobile UI (zellij >= 0.45): a session list with
+# "+ New Session" at https://HOST/, and an on-screen key row.
 #
-#   zweb [status]        web server + tailnet-proxy + switcher status
+#   zweb [status]        web server + tailnet-proxy status
 #   zweb start|stop      run/stop the server by hand (normally automatic)
 #   zweb token NAME      mint a login token (one per device: mobile, laptop, ...)
 #   zweb rotoken NAME    mint a read-only token (watch, no input)
 #   zweb tokens          list token names + creation dates
 #   zweb revoke NAME     revoke a token (kills its devices' logins)
-#   zweb up|down         publish/unpublish on the tailnet; up also starts the
-#                        mobile switcher + key-row page at https://HOST/s
+#   zweb up|down         publish/unpublish on the tailnet
 #   zweb enable|disable  run `zweb up` at login (launchd/systemd), after
 #                        waiting for Tailscale to come online (zweb-boot.sh)
 #   zweb online          exit 0 iff the tailscale backend is Running (internal;
 #                        polled by zweb-boot.sh)
 
-# The switcher's pidfile, and its pid when the process is alive (verified by
-# matching zweb-switcher.py in the pid's command line).
-_zweb_pidfile() { echo "${TMPDIR:-/tmp}/zweb-switcher.$(id -u).pid"; }
-_zweb_switcher_pid() {  # print the running switcher's pid, else fail
-    local pf pid; pf="$(_zweb_pidfile)"
-    pid="$(cat "$pf" 2>/dev/null)" || return 1
-    [ -n "$pid" ] && ps -p "$pid" -o command= 2>/dev/null | grep -q 'zweb-switcher\.py' \
-        && echo "$pid"
-}
+# Start the web server detached. Sessions created from a browser inherit its
+# environment, and zellij doesn't set TERM for panes, so a server started where
+# there is no TERM (login autostart, a tty-less ssh) gives those shells none
+# ("TERM environment variable not set"). Use the browser's terminal (xterm.js).
+_zweb_start() { TERM=xterm-256color COLORTERM=truecolor zellij web -d; }
 
 _tsbin() {  # tailscale CLI: on PATH (Linux) or inside the macOS app bundle
     if command -v tailscale >/dev/null 2>&1; then command tailscale "$@"
@@ -54,14 +51,11 @@ case "$cmd" in
     status)
         zellij web --status
         _tsbin serve status 2>/dev/null || echo "zweb: no tailnet proxy on this host (publish with: zweb up)"
-        [ -n "$(_zweb_switcher_pid)" ] \
-            && echo "zweb: mobile switcher running (127.0.0.1:8083, mounted at /s)" \
-            || echo "zweb: mobile switcher not running (starts with: zweb up)"
         # Sharing is a per-session property fixed at creation: sessions
         # started while web_sharing was off (or sharing toggled off since)
         # loop "connection lost" in the browser instead of saying why.
         echo "zweb: browser stuck on 'connection lost'? That session isn't web-shared (started while web_sharing was off) -> in it: Ctrl+o, s, then start sharing" ;;
-    start) zellij web -d ;;
+    start) _zweb_start ;;
     stop)  zellij web --stop ;;
     online) _zweb_tailscale_online ;;
     token|rotoken)
@@ -99,7 +93,7 @@ case "$cmd" in
         # first session, but at boot there is none yet, so start it here.
         # `zellij web --status` exits 0 even when offline, so match its
         # output rather than its exit code.
-        zellij web --status 2>&1 | grep -qi offline && zellij web -d >/dev/null 2>&1
+        zellij web --status 2>&1 | grep -qi offline && _zweb_start >/dev/null 2>&1
         # Proxy 443 -> localhost:8082. Needs MagicDNS + HTTPS Certificates
         # enabled for the tailnet (admin console -> DNS); serve config is
         # stored by tailscaled, so this survives reboots.
@@ -113,25 +107,14 @@ case "$cmd" in
         fqdn="$(_tsbin status --json 2>/dev/null | sed -n 's/.*"DNSName": *"\([^"]*\)".*/\1/p' | head -n1)"
         fqdn="${fqdn%.}"
         [ -n "$fqdn" ] && echo "zweb: serving at https://$fqdn/  (attach: https://$fqdn/<session-name>)"
-        # Mobile switcher + on-screen key row (zweb-switcher.py), mounted at
-        # /s on the same origin so it shares the login cookie.
-        if command -v python3 >/dev/null 2>&1 && [ -f "$HOME/.config/zellij/zweb-switcher.py" ]; then
-            # Start it unless already running. The pidfile arg makes the
-            # switcher daemonize and record its pid there.
-            [ -n "$(_zweb_switcher_pid)" ] \
-                || python3 "$HOME/.config/zellij/zweb-switcher.py" "$(_zweb_pidfile)" >/dev/null 2>&1
-            if _tsbin serve --bg --set-path=/s http://127.0.0.1:8083 >/dev/null 2>&1; then
-                echo "zweb: mobile switcher at https://${fqdn:-HOST}/s"
-            else
-                echo "zweb: could not mount /s (tailscale serve --set-path failed)" >&2
-            fi
-        fi ;;
+        # The /s mobile switcher was retired (zellij >= 0.45 ships its own
+        # mobile UI at /); drop the mount and process an older version left.
+        _tsbin serve --https=443 --set-path=/s off >/dev/null 2>&1
+        pkill -u "$(id -u)" -f 'zweb-switcher\.py' 2>/dev/null
+        true ;;
     down)
-        arg="$(_zweb_switcher_pid)" && kill "$arg" 2>/dev/null
-        rm -f "$(_zweb_pidfile)"
-        # Turn off only the two mounts `zweb up` created (not `serve
-        # reset`, which clears every mount on the host).
-        _tsbin serve --https=443 --set-path=/s off 2>/dev/null
+        # Turn off only the mount `zweb up` created (not `serve reset`,
+        # which clears every mount on the host).
         _tsbin serve --https=443 off \
             && echo "zweb: tailnet proxy removed (server still on 127.0.0.1:8082)" ;;
     enable|disable)
